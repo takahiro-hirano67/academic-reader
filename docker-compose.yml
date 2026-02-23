@@ -1,0 +1,60 @@
+# docker-compose.yml
+
+services:
+    backend:
+        # `./backend/Dockerfile` を使ってイメージをビルド
+        build: ./backend
+        container_name: academic-reader-backend
+        ## ポートマッピング ##
+        ports:
+            - "8000:8000" # `http://localhost:8000` でアクセスできる
+        ## ボリュームマウント ##
+        volumes:
+            - ./backend:/app
+            # .venv は Docker volume に切り出す（ホストとの環境分離）
+            - backend-venv:/app/.venv
+            # Doclingモデル(HuggingFace)のキャッシュを永続化
+            - model-cache:/root/.cache/huggingface
+            # PDFと抽出画像・Markdownの保存先を永続化
+            - ./storage:/app/storage
+        ## 環境 ##
+        environment:
+            - ENV=development # 明示
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                        - driver: nvidia
+                          count: 1
+                          capabilities: [gpu]
+        ## 実行コマンドの明示（常にこちらで実行する） ##
+        command: uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+    frontend:
+        # `./frontend/Dockerfile` を使ってイメージをビルド
+        build: ./frontend
+        container_name: academic-reader-frontend
+        ## ポートマッピング ##
+        ports:
+            - "3000:3000" # `http://localhost:3000` でアクセスできる
+        ## ボリュームマウント ##
+        # ホストの汚染を防ぐため、ホストのパスを指定せず、コンテナ専用のボリュームにする
+        volumes:
+            - ./frontend:/app
+            - /app/node_modules
+        ## 環境 ##
+        environment:
+            - NODE_ENV=development # 明示
+            # ブラウザから叩くURL --> localhost:8000 を指定
+            - NEXT_PUBLIC_API_URL=http://localhost:8000
+            - WATCHPACK_POLLING=true # ホットリロード安定化
+        ## 依存 ##
+        # `cont-backend` コンテナを起動してから `cont-frontend` を起動する
+        depends_on:
+            - backend
+        # 実行コマンドを明示
+        command: npm run dev
+
+volumes:
+    backend-venv:
+    model-cache:
