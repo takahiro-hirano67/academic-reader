@@ -15,8 +15,6 @@ services:
             - backend-venv:/app/.venv
             # Doclingモデル(HuggingFace)のキャッシュを永続化
             - model-cache:/root/.cache/huggingface
-            # PDFと抽出画像・Markdownの保存先を永続化
-            - ./storage:/app/storage
         ## 環境 ##
         environment:
             - ENV=development # 明示

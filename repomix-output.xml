@@ -51,34 +51,24 @@ backend/src/core/model_setup.py
 backend/src/services/academic/academic_api.py
 backend/src/services/academic/academic_store.py
 backend/src/services/academic/supports/academic_parser.py
-backend/storage/academic/08b60861-1c53-4740-a80c-2801d771f98b/content.md
-backend/storage/academic/08b60861-1c53-4740-a80c-2801d771f98b/figures/fig_001.png
-backend/storage/academic/08b60861-1c53-4740-a80c-2801d771f98b/figures/fig_002.png
-backend/storage/academic/08b60861-1c53-4740-a80c-2801d771f98b/figures/fig_003.png
-backend/storage/academic/08b60861-1c53-4740-a80c-2801d771f98b/figures/fig_004.png
-backend/storage/academic/08b60861-1c53-4740-a80c-2801d771f98b/figures/fig_005.png
-backend/storage/academic/08b60861-1c53-4740-a80c-2801d771f98b/figures/fig_006.png
-backend/storage/academic/08b60861-1c53-4740-a80c-2801d771f98b/figures/fig_007.png
-backend/storage/academic/08b60861-1c53-4740-a80c-2801d771f98b/figures/fig_008.png
-backend/storage/academic/08b60861-1c53-4740-a80c-2801d771f98b/figures/fig_009.png
-backend/storage/academic/08b60861-1c53-4740-a80c-2801d771f98b/figures/fig_010.png
-backend/storage/academic/08b60861-1c53-4740-a80c-2801d771f98b/meta.json
 docker-compose.yml
+frontend/.env.local.example
 frontend/.gitignore
 frontend/app/favicon.ico
 frontend/app/globals.css
 frontend/app/layout.tsx
 frontend/app/page.tsx
+frontend/components/layout/Header.tsx
+frontend/components/ui/CopyButton.tsx
+frontend/components/ui/ImageModal.tsx
+frontend/components/ui/MarkdownViewer.tsx
+frontend/components/ui/Mermaid.tsx
 frontend/Dockerfile
 frontend/eslint.config.mjs
 frontend/next.config.ts
 frontend/package.json
 frontend/postcss.config.mjs
-frontend/public/file.svg
-frontend/public/globe.svg
-frontend/public/next.svg
-frontend/public/vercel.svg
-frontend/public/window.svg
+frontend/styles/markdown_style.css
 frontend/tailwind.config.js
 frontend/tsconfig.json
 README.md
@@ -87,9 +77,812 @@ README.md
 <files>
 This section contains the contents of the repository's files.
 
+<file path="frontend/.env.local.example">
+NEXT_PUBLIC_API_URL = "http://localhost:8000"
+</file>
+
+<file path="frontend/components/layout/Header.tsx">
+"use client";
+
+import { Book } from "lucide-react";
+
+export const Header = () => {
+
+    return (
+        <header
+            className="flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-gray-200/70 shadow-2xs z-50 transition-all duration-300"
+            style={{ height: "52px" }}>
+            <div className="flex items-center gap-2">
+                <div className="flex items-center">
+                    <div className="flex gap-2 pl-4 items-center w-[224px] h-[52px]">
+                        {/* ロゴ部分 */}
+                        <div className="flex items-center gap-2 ml-2">
+                            <div className="w-7 h-7 bg-linear-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                                <Book className="w-4 h-4 text-white" />
+                            </div>
+                            <span className="text-base font-semibold text-gray-800">Academic Reader</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </header>
+    );
+};
+</file>
+
+<file path="frontend/components/ui/CopyButton.tsx">
+"use client";
+
+import { Check, Copy } from "lucide-react";
+import { useState } from "react";
+
+// ============================================================
+// 生成されたテキストをクリップボードにコピーするボタンコンポーネント
+// ============================================================
+
+// 通常サイズ
+export const CopyButton = ({
+    text,
+    className = "",
+    label = "コピー",
+}: {
+    text: string;
+    className?: string;
+    label?: string;
+}) => {
+    const [isCopied, setIsCopied] = useState(false);
+
+    const handleCopy = async () => {
+        if (!text) return;
+
+        try {
+            await navigator.clipboard.writeText(text);
+            setIsCopied(true);
+            // 2秒後にアイコンを元に戻す
+            setTimeout(() => {
+                setIsCopied(false);
+            }, 2000);
+        } catch (err) {
+            console.error("Failed to copy text: ", err);
+        }
+    };
+
+    return (
+        <button
+            onClick={handleCopy}
+            disabled={!text || isCopied}
+            className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md border transition-all 
+                ${
+                    isCopied
+                        ? "bg-green-50 text-green-700 border-green-200"
+                        : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:text-slate-700"
+                } ${className}`}
+            title="クリップボードにコピー">
+            {isCopied ? <Check size={14} /> : <Copy size={14} />}
+            <span>{isCopied ? "コピー完了" : label}</span>
+        </button>
+    );
+};
+
+// 小さいコピーボタン（法人番号用）
+export const SmallCopyButton = ({ text }: { text: string }) => {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = async () => {
+        if (!text) return;
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+    };
+
+    return (
+        <button
+            onClick={handleCopy}
+            disabled={!text}
+            className={`
+                inline-flex items-center justify-center
+                w-7 h-7 rounded-md border
+                transition-all
+                ${
+                    copied
+                        ? "bg-green-50 border-green-200 text-green-600"
+                        : "bg-white border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+                }
+            `}
+            title={copied ? "コピーしました" : "コピー"}>
+            {copied ? <Check size={14} /> : <Copy size={14} />}
+        </button>
+    );
+};
+</file>
+
+<file path="frontend/components/ui/ImageModal.tsx">
+"use client";
+
+import { RotateCcw, RotateCw, X, ZoomIn, ZoomOut } from "lucide-react";
+import { useEffect, useState } from "react";
+
+interface ImageModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    imageUrl: string | null;
+    altText?: string;
+}
+
+// 画像拡大汎用モーダル
+export const ImageModal = ({ isOpen, onClose, imageUrl, altText }: ImageModalProps) => {
+    const [rotation, setRotation] = useState(0);
+    const [scale, setScale] = useState(1);
+
+    // モーダルが開くたびに状態をリセット
+    useEffect(() => {
+        if (isOpen) {
+            setRotation(0);
+            setScale(1);
+        }
+    }, [isOpen]);
+
+    // ESCキーで閉じる
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") onClose();
+        };
+        if (isOpen) {
+            window.addEventListener("keydown", handleKeyDown);
+        }
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isOpen, onClose]);
+
+    if (!isOpen || !imageUrl) return null;
+
+    const handleRotateLeft = () => setRotation((prev) => prev - 90);
+    const handleRotateRight = () => setRotation((prev) => prev + 90);
+    const handleZoomIn = () => setScale((prev) => Math.min(prev + 0.25, 3)); // 最大3倍
+    const handleZoomOut = () => setScale((prev) => Math.max(prev - 0.25, 0.5)); // 最小0.5倍
+
+    return (
+        <div
+            className="fixed inset-0 z-100 flex items-center justify-center bg-black/40"
+            onClick={onClose}
+        >
+            {/* コントロールバー */}
+            <div
+                className="absolute top-4 right-4 z-50 flex items-center gap-2 p-2 bg-black/40 rounded-full backdrop-blur-md border border-white/10"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="flex gap-1 pr-2 border-r border-white/20">
+                    <button
+                        onClick={handleRotateLeft}
+                        className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                        title="左に90度回転"
+                    >
+                        <RotateCcw size={20} />
+                    </button>
+                    <button
+                        onClick={handleRotateRight}
+                        className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                        title="右に90度回転"
+                    >
+                        <RotateCw size={20} />
+                    </button>
+                </div>
+
+                <div className="flex gap-1 px-2 border-r border-white/20">
+                    <button
+                        onClick={handleZoomOut}
+                        className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                        title="縮小"
+                    >
+                        <ZoomOut size={20} />
+                    </button>
+                    <button
+                        onClick={handleZoomIn}
+                        className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                        title="拡大"
+                    >
+                        <ZoomIn size={20} />
+                    </button>
+                </div>
+
+                <button
+                    onClick={onClose}
+                    className="ml-1 p-2 bg-white/10 hover:bg-red-500/80 text-white rounded-full transition-colors"
+                    title="閉じる (Esc)"
+                >
+                    <X size={20} />
+                </button>
+            </div>
+
+            {/* 画像表示エリア */}
+            <div
+                className="relative w-full h-full flex items-center justify-center p-8 overflow-hidden"
+                onClick={onClose} // 画像外クリックでも閉じる
+            >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                    src={imageUrl}
+                    alt={altText || "Preview"}
+                    onClick={(e) => e.stopPropagation()} // 画像クリックでは閉じない
+                    style={{
+                        transform: `rotate(${rotation}deg) scale(${scale})`,
+                        transition: "transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
+                        maxWidth: "100%",
+                        maxHeight: "100%",
+                        objectFit: "contain",
+                    }}
+                    className="shadow-2xl select-none"
+                    draggable={false}
+                />
+            </div>
+            
+            {/* 情報表示（左下） */}
+            <div className="absolute bottom-6 left-6 text-white/70 text-sm font-mono bg-black/40 px-3 py-1 rounded-md backdrop-blur-md">
+                {altText} • {Math.round(scale * 100)}% • {rotation}°
+            </div>
+        </div>
+    );
+};
+</file>
+
+<file path="frontend/components/ui/MarkdownViewer.tsx">
+"use client";
+
+import "@/styles/markdown_style.css";
+import "katex/dist/katex.min.css"; // 数式用CSS
+
+import { Check, Copy } from "lucide-react"; // アイコン用
+import dynamic from "next/dynamic";
+import React, { memo, useMemo, useState } from "react";
+import ReactMarkdown from "react-markdown"; // Markdownレンダリング
+
+// --- Plugins ---
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"; // コードハイライト
+import { vs } from "react-syntax-highlighter/dist/esm/styles/prism"; // VSコード風のスタイル
+import rehypeKatex from "rehype-katex"; // 数式描画ライブラリを利用してHTML化
+import remarkBreaks from "remark-breaks"; // 改行を<br>として扱う
+import remarkGfm from "remark-gfm"; // GitHub Flavored Markdown (GFM) の記法を適用
+import { remarkAlert } from "remark-github-blockquote-alert"; // GitHubスタイルの警告表示適用
+import remarkMath from "remark-math"; // 数式記法の認識（$E=mc^2$ や $$...$$など）
+
+// Mermaidコンポーネントを動的インポート（SSR無効化・Loading表示付き）
+// これにより、Mermaidが含まれないページでは巨大なライブラリが読み込まれない
+const MermaidPreview = dynamic(() => import("./Mermaid"), {
+    ssr: false,
+    loading: () => <div className="p-4 text-gray-400 animate-pulse">Loading Diagram...</div>,
+});
+
+// ============================================================
+// テキスト前処理関数
+// ============================================================
+
+const preprocessContent = (content: string) => {
+    if (!content) return "";
+
+    let processed = content;
+
+    // 1. MathDelimiters normalization
+    // Doclingなどが出力する \[ ... \] や \( ... \) を $$...$$ や $...$ に変換
+    processed = processed.replace(/\\\[([\s\S]*?)\\\]/g, "$$$$$1$$$$");
+    processed = processed.replace(/\\\(([\s\S]*?)\\\)/g, "$$$1$$");
+
+    // 2. OCR Typos Fix
+    // Docling特有の "M u t i { H e a d }" を "MultiHead" に修正
+    if (processed.includes("M u t i { H e a d }")) {
+        processed = processed.replace(/M u t i \{ H e a d \}/g, "\\text{MultiHead}");
+    }
+
+    // 3. KaTeX Aligned Fix
+    // 数式内に '&' (整列) があり、かつ環境指定(\begin)がない場合、
+    // KaTeXがエラーになるため、自動的に aligned 環境で囲む
+    processed = processed.replace(/\$\$([\s\S]*?)\$\$/g, (match, equation) => {
+        // 既に環境指定(\begin)がある場合は何もしない
+        if (equation.includes("\\begin")) return match;
+
+        // '&' (整列タブ) が含まれている場合、補正対象とする
+        if (equation.includes("&")) {
+            // $$ の内側に改行を入れ、aligned環境で囲むことで
+            // remark-math にブロック数式として認識させ、かつ整列を有効にする
+            return `$$\n\\begin{aligned}\n${equation}\n\\end{aligned}\n$$`;
+        }
+
+        return match;
+    });
+
+    // 4. Code Block normalization
+    // コードブロックの ``` の直前に改行がないと正しくパースされない場合への対処
+    processed = processed.replace(/([^\n])```/g, "$1\n```");
+
+    return processed;
+};
+
+// ============================================================
+// メインコンポーネント
+// ============================================================
+
+interface MarkdownViewerProps {
+    content: string;
+    className?: string;
+}
+
+const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, className }) => {
+    // メモ化して前処理を実行
+    const processedContent = useMemo(() => preprocessContent(content), [content]);
+
+    return (
+        <div className={`markdown ${className || ""}`}>
+            <ReactMarkdown
+                remarkPlugins={[remarkGfm, remarkBreaks, remarkMath, remarkAlert]}
+                rehypePlugins={[rehypeKatex]}
+                components={{
+                    // pタグをdivタグに置き換えて、Hydrationエラーを回避（pタグの中にdiv(コードブロック)が入るのを防ぐため）
+                    p: ({ children }) => <div className="mb-4 leading-relaxed">{children}</div>,
+
+                    // preタグは、中のcodeタグ(CodeBlock)がスタイルを持つため、ラッパーを外す
+                    pre: ({ children }) => <>{children}</>,
+
+                    // codeタグをカスタムコンポーネントに置き換え
+                    code: CodeBlock,
+
+                    // --- リンク制御（外部リンクを別タブで開く） ---
+                    a: ({ node, ...props }) => (
+                        <a
+                            {...props}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline cursor-pointer"
+                        />
+                    ),
+                }}>
+                {processedContent}
+            </ReactMarkdown>
+        </div>
+    );
+};
+// 【メモ化して、contentが変わった時だけ再レンダリングする】
+// ストリーミング時は頻繁に更新されるが、ReactのDiff検知により
+// 変更部分以外の再描画コストを抑えらる。
+export default memo(MarkdownViewer, (prev, next) => prev.content === next.content);
+
+// -----------------------------------------------------------------------------
+// コードブロック用コンポーネント（状態管理のために分離）
+// -----------------------------------------------------------------------------
+const CodeBlock = ({ node, inline, className, children, ...props }: any) => {
+    const match = /language-(\w+)/.exec(className || "");
+    const lang = match ? match[1] : "";
+    const codeString = String(children).replace(/\n$/, "");
+    const [isCopied, setIsCopied] = useState(false);
+
+    // 【メモ】
+    // react-markdown v9+ では inline プロパティが渡されないため、独自に判定。
+    // 言語指定(match)がなく、かつコード文字列に改行(\n)が含まれていない場合をインラインとみなす。
+    const isInline = inline ?? (!match && !codeString.includes("\n"));
+
+    // 1. インラインコードの場合
+    if (isInline) {
+        return (
+            <code
+                className="bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded text-sm font-mono mx-0.5 break-all"
+                {...props}>
+                {children}
+            </code>
+        );
+    }
+
+    // 2. Mermaidの場合
+    if (lang === "mermaid") {
+        return <MermaidPreview code={codeString} />;
+    }
+
+    // 共通のコピー処理
+    const handleCopy = async () => {
+        await navigator.clipboard.writeText(codeString);
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+    };
+
+    // 3. シンタックスハイライト（ヘッダー付きブロック）
+    if (match) {
+        return (
+            <div className="my-4 rounded-lg border border-gray-200 overflow-hidden bg-gray-50">
+                {/* ヘッダー部分 */}
+                <div className="flex items-center justify-between px-3 py-1.5 bg-gray-100 border-b border-gray-200">
+                    <span className="text-xs font-medium text-gray-600 select-none">{lang}</span>
+                    <button
+                        onClick={handleCopy}
+                        className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600 transition-colors"
+                        title="コードをクリップボードにコピー">
+                        {isCopied ? (
+                            <>
+                                <Check size={14} className="text-green-600" />
+                                <span className="text-green-600 font-medium">Copied!</span>
+                            </>
+                        ) : (
+                            <>
+                                <Copy size={14} />
+                                <span>Copy</span>
+                            </>
+                        )}
+                    </button>
+                </div>
+
+                {/* コード本文 */}
+                <SyntaxHighlighter
+                    {...props}
+                    style={vs}
+                    language={lang}
+                    PreTag="div"
+                    customStyle={{
+                        margin: 0,
+                        padding: "1rem",
+                        backgroundColor: "transparent",
+                        border: "none",
+                    }}
+                    codeTagProps={{
+                        style: {
+                            backgroundColor: "transparent",
+                            padding: 0, // CSS側のパディングを打ち消す
+                        },
+                    }}>
+                    {codeString}
+                </SyntaxHighlighter>
+            </div>
+        );
+    }
+
+    // 4. 言語指定なしのブロックコード（フォールバック）
+    // ここに来るのは「言語指定はないが、複数行ある」場合
+    return (
+        <pre className="p-4 my-4 rounded-lg bg-gray-100 overflow-auto border border-gray-200 text-sm font-mono">
+            <code className={className} {...props}>
+                {children}
+            </code>
+        </pre>
+    );
+};
+</file>
+
+<file path="frontend/components/ui/Mermaid.tsx">
+"use client";
+
+import React, { useEffect, useRef, useState } from "react";
+import mermaid from "mermaid";
+import { Download, Check } from "lucide-react"; // アイコン用
+
+// mermaidの初期設定
+mermaid.initialize({
+    startOnLoad: false,
+    theme: "default",
+    securityLevel: "loose",
+    fontFamily: "sans-serif",
+    flowchart: { htmlLabels: false }, // HTMLラベルを無効化 --> ダウンロード時のセキュリティ制限に対応
+});
+
+interface MermaidProps {
+    code: string;
+}
+
+const Mermaid = ({ code }: MermaidProps) => {
+    const ref = useRef<HTMLDivElement>(null);
+    const [isCopied, setIsCopied] = useState(false);
+    const [renderId, setRenderId] = useState(""); // ユニークID用
+
+    // コードが変わるたびにユニークなIDを生成（Mermaidのキャッシュ対策）
+    useEffect(() => {
+        setRenderId(`mermaid${Math.random().toString(36).substring(2, 9)}`);
+    }, [code]);
+
+    useEffect(() => {
+        if (ref.current && renderId) {
+            // 既存のSVGをクリア
+            ref.current.innerHTML = "";
+
+            // 一時的な要素を作成して描画させる
+            // mermaid.render(id, text, container?) APIを使用
+            mermaid
+                .render(renderId, code)
+                .then(({ svg }) => {
+                    if (ref.current) {
+                        ref.current.innerHTML = svg;
+                    }
+                })
+                .catch((e) => {
+                    console.error("Mermaid render error:", e);
+                    if (ref.current)
+                        if (ref.current)
+                            ref.current.innerHTML = `<p class="text-red-500 text-sm p-2">Rendering Error: ${e.message}</p>`;
+                });
+        }
+    }, [code, renderId]);
+
+    // 画像としてダウンロードする関数
+    const handleDownload = () => {
+        if (!ref.current) return;
+        const svgElement = ref.current.querySelector("svg");
+        if (!svgElement) return;
+
+        // 1. SVGデータを文字列化
+        const serializer = new XMLSerializer();
+        let svgString = serializer.serializeToString(svgElement);
+
+        // 2. SVGをBase64エンコード
+        const svgBase64 =
+            "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgString)));
+
+        // 3. Canvasに描画
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement("canvas");
+            const scale = 2; // 解像度を2倍（高画質化）
+
+            // 【修正ポイント】viewBox属性から正確なサイズとアスペクト比を取得
+            let width = 0;
+            let height = 0;
+            const viewBox = svgElement.getAttribute("viewBox");
+
+            if (viewBox) {
+                // viewBox = "min-x min-y width height" の形式
+                const parts = viewBox.split(/\s+/).map(parseFloat);
+                if (parts.length === 4) {
+                    width = parts[2];
+                    height = parts[3];
+                }
+            }
+
+            // フォールバック（viewBoxがない場合）
+            if (width === 0 || height === 0) {
+                const rect = svgElement.getBoundingClientRect();
+                width = rect.width;
+                height = rect.height;
+            }
+
+            // 正確なアスペクト比でCanvasサイズを設定
+            canvas.width = width * scale;
+            canvas.height = height * scale;
+
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return;
+
+            // 背景を白で塗りつぶす
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 画像を描画（Canvasサイズに合わせてスケーリングされる）
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            try {
+                // 4. PNG変換とダウンロード
+                const pngUrl = canvas.toDataURL("image/png");
+                const downloadLink = document.createElement("a");
+                downloadLink.href = pngUrl;
+                downloadLink.download = `chart-${new Date().getTime()}.png`;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+
+                setIsCopied(true);
+                setTimeout(() => setIsCopied(false), 2000);
+            } catch (e) {
+                console.error("Canvas export failed:", e);
+                alert("画像の保存に失敗しました。セキュリティ制限の可能性があります。");
+            }
+        };
+
+        // 画像ソースにBase64を設定
+        img.src = svgBase64;
+    };
+
+    return (
+        <div className="relative group my-4">
+            <div
+                className="mermaid flex justify-center py-6 bg-white border border-gray-200 rounded-lg shadow-sm overflow-x-auto"
+                ref={ref}
+            />
+            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <button
+                    onClick={handleDownload}
+                    className="p-1.5 bg-gray-100 hover:bg-white text-gray-500 hover:text-blue-600 rounded border border-gray-200 shadow-sm transition-colors"
+                    title="PNG画像として保存">
+                    {isCopied ? <Check size={16} /> : <Download size={16} />}
+                </button>
+            </div>
+        </div>
+    );
+};
+
+export default Mermaid;
+</file>
+
+<file path="frontend/styles/markdown_style.css">
+/*
+    ============================================================
+    Markdownのスタイルを適用するCSS (LLM出力テキスト, メモ機能など)
+    ============================================================
+*/
+
+/* 見出し */
+.markdown h1 {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 1.75rem 0 1rem;
+}
+.markdown h2 {
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin: 1.75rem 0 0.5rem;
+}
+.markdown h3 {
+    font-size: 1rem;
+    font-weight: bold;
+    margin: 1.75rem 0 0.5rem;
+}
+.markdown h4 {
+    font-size: 1rem;
+    font-weight: bold;
+    margin: 1.75rem 0 0.5rem;
+}
+.markdown h5 {
+    font-size: 1rem;
+    font-weight: bold;
+    margin: 1.75rem 0 0.5rem;
+}
+.markdown h6 {
+    font-size: 1rem;
+    font-weight: bold;
+    margin: 1.75rem 0 0.5rem;
+}
+/* 基本書式 */
+.markdown p {
+    margin-bottom: 1rem;
+}
+.markdown hr {
+    border-top: 1px solid #c4c7c5;
+    margin: 0.5rem 0;
+}
+/* リスト */
+.markdown ul {
+    padding-left: 1.6875rem;
+    margin: 0.5rem 0 1rem;
+}
+.markdown ol {
+    padding-left: 1.6875rem;
+    margin: 0.5rem 0 1rem;
+}
+.markdown li {
+    padding-left: 0.25rem;
+    margin-bottom: 0.5rem;
+    list-style: inside;
+    list-style-position: outside;
+}
+.markdown ul li p {
+    padding-left: 0.025rem;
+    margin: 0.5rem 0;
+}
+/* コードブロック */
+.markdown pre,
+.markdown code {
+    background: #f0f4f9;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    font-family: "Fira Mono", "Menlo", "Consolas", monospace;
+    font-size: 0.95em;
+}
+.markdown pre {
+    overflow-x: auto;
+}
+.markdown code {
+    padding: 0.2em 0.4em;
+}
+/* テーブル */
+.markdown table {
+    border-collapse: collapse;
+}
+.markdown th {
+    padding: 0.5rem;
+    font-weight: 700;
+    border: 1px solid #d6e3ed;
+    background-color: #edf2f7;
+}
+.markdown td {
+    padding: 0.5rem;
+    border: 1px solid #d6e3ed;
+    background-color: #fff;
+}
+
+.citation {
+    font-size: 0.75em;
+    color: #6b7280; /* gray-500 */
+    opacity: 0.65;
+    margin-left: 0.25em;
+    white-space: nowrap;
+    cursor: default;
+}
+
+.citation:hover {
+    opacity: 1;
+    color: #2563eb; /* blue-600 */
+}
+</file>
+
 <file path="backend/.env.example">
 FRONTEND_URL = "http://localhost:3000"
 HF_TOKEN = "your_HT_TOKEN"
+</file>
+
+<file path="backend/.python-version">
+3.12
+</file>
+
+<file path="backend/Dockerfile">
+# backend/Dockerfile
+
+## ベースイメージ ##
+FROM python:3.12-slim
+
+# OpenCV/RapidOCRに必要なシステムライブラリをインストール
+RUN apt-get update && apt-get install -y \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+## 作業ディレクトリを設定 ##
+WORKDIR /app
+
+## uvをインストール ##
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+## uvのvenv作成場所を明示 ##
+ENV UV_PROJECT_ENVIRONMENT=/app/.venv
+
+## 依存関係定義のみ先にコピー ##
+COPY pyproject.toml uv.lock ./
+
+## 依存関係のインストール ##
+# --frozenでlockファイルを厳密に再現
+RUN uv sync --frozen --no-dev
+
+## アプリのコードをコピー ##
+COPY . .
+
+## FastAPI 開発サーバーのポート（明示的に記載） ##
+EXPOSE 8000
+
+## コンテナ起動時に実行するコマンド ##
+CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+</file>
+
+<file path="backend/pyproject.toml">
+[project]
+name = "academic-reader-backend"
+version = "0.1.0"
+description = "Academic Paper Reader powered by Docling"
+requires-python = ">=3.12"
+dependencies = [
+    # APIサーバー関連
+    "fastapi>=0.128.0",
+    "uvicorn>=0.40.0",
+    "python-multipart>=0.0.21", # PDFファイルのアップロード受け取りに必須
+    "dotenv>=0.9.9",            # .env読み込み用
+    
+    # Docling & AIモデル関連
+    "docling>=2.66.0",
+    "torch>=2.6.0",             # GPUを用いた高速処理用
+    "torchvision>=0.21.0",
+    "rapidocr-onnxruntime>=1.4.4", # Doclingの日本語OCRエンジン用
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu124" }
+torchvision = { index = "pytorch-cu124" }
+
+[tool.ruff]
+line-length = 120
 </file>
 
 <file path="backend/src/core/config.py">
@@ -410,433 +1203,933 @@ def extract_content_from_pdf(pdf_bytes: bytes) -> Dict[str, Any]:
         raise Exception(f"PDF解析に失敗しました: {str(e)}")
 </file>
 
-<file path="backend/storage/academic/08b60861-1c53-4740-a80c-2801d771f98b/content.md">
-Provided proper attribution is provided, Google hereby grants permission to reproduce the tables and figures in this paper solely for use in journalistic or scholarly works.
-
-## Attention Is All You Need
-
-Ashish Vaswani ∗ Google Brain avaswani@google.com
-
-Noam Shazeer ∗ Google Brain noam@google.com
-
-Llion Jones ∗ Google Research llion@google.com
-
-Niki Parmar ∗ Google Research nikip@google.com
-
-Aidan N. Gomez ∗ † University of Toronto aidan@cs.toronto.edu
-
-Jakob Uszkoreit ∗ Google Research usz@google.com
-
-Łukasz Kaiser ∗ Google Brain lukaszkaiser@google.com
-
-Illia Polosukhin ∗ ‡
-
-illia.polosukhin@gmail.com
-
-## Abstract
-
-The dominant sequence transduction models are based on complex recurrent or convolutional neural networks that include an encoder and a decoder. The best performing models also connect the encoder and decoder through an attention mechanism. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely. Experiments on two machine translation tasks show these models to be superior in quality while being more parallelizable and requiring significantly less time to train. Our model achieves 28.4 BLEU on the WMT 2014 Englishto-German translation task, improving over the existing best results, including ensembles, by over 2 BLEU. On the WMT 2014 English-to-French translation task, our model establishes a new single-model state-of-the-art BLEU score of 41.8 after training for 3.5 days on eight GPUs, a small fraction of the training costs of the best models from the literature. We show that the Transformer generalizes well to other tasks by applying it successfully to English constituency parsing both with large and limited training data.
-
-∗ Equal contribution. Listing order is random. Jakob proposed replacing RNNs with self-attention and started the effort to evaluate this idea. Ashish, with Illia, designed and implemented the first Transformer models and has been crucially involved in every aspect of this work. Noam proposed scaled dot-product attention, multi-head attention and the parameter-free position representation and became the other person involved in nearly every detail. Niki designed, implemented, tuned and evaluated countless model variants in our original codebase and tensor2tensor. Llion also experimented with novel model variants, was responsible for our initial codebase, and efficient inference and visualizations. Lukasz and Aidan spent countless long days designing various parts of and implementing tensor2tensor, replacing our earlier codebase, greatly improving results and massively accelerating our research.
-
-† Work performed while at Google Brain.
-
-‡ Work performed while at Google Research.
-
-## 1 Introduction
-
-Recurrent neural networks, long short-term memory [13] and gated recurrent [7] neural networks in particular, have been firmly established as state of the art approaches in sequence modeling and transduction problems such as language modeling and machine translation [35, 2, 5]. Numerous efforts have since continued to push the boundaries of recurrent language models and encoder-decoder architectures [38, 24, 15].
-
-Recurrent models typically factor computation along the symbol positions of the input and output sequences. Aligning the positions to steps in computation time, they generate a sequence of hidden states h t , as a function of the previous hidden state h t -1 and the input for position t . This inherently sequential nature precludes parallelization within training examples, which becomes critical at longer sequence lengths, as memory constraints limit batching across examples. Recent work has achieved significant improvements in computational efficiency through factorization tricks [21] and conditional computation [32], while also improving model performance in case of the latter. The fundamental constraint of sequential computation, however, remains.
-
-Attention mechanisms have become an integral part of compelling sequence modeling and transduction models in various tasks, allowing modeling of dependencies without regard to their distance in the input or output sequences [2, 19]. In all but a few cases [27], however, such attention mechanisms are used in conjunction with a recurrent network.
-
-In this work we propose the Transformer, a model architecture eschewing recurrence and instead relying entirely on an attention mechanism to draw global dependencies between input and output. The Transformer allows for significantly more parallelization and can reach a new state of the art in translation quality after being trained for as little as twelve hours on eight P100 GPUs.
-
-## 2 Background
-
-The goal of reducing sequential computation also forms the foundation of the Extended Neural GPU [16], ByteNet [18] and ConvS2S [9], all of which use convolutional neural networks as basic building block, computing hidden representations in parallel for all input and output positions. In these models, the number of operations required to relate signals from two arbitrary input or output positions grows in the distance between positions, linearly for ConvS2S and logarithmically for ByteNet. This makes it more difficult to learn dependencies between distant positions [12]. In the Transformer this is reduced to a constant number of operations, albeit at the cost of reduced effective resolution due to averaging attention-weighted positions, an effect we counteract with Multi-Head Attention as described in section 3.2.
-
-Self-attention, sometimes called intra-attention is an attention mechanism relating different positions of a single sequence in order to compute a representation of the sequence. Self-attention has been used successfully in a variety of tasks including reading comprehension, abstractive summarization, textual entailment and learning task-independent sentence representations [4, 27, 28, 22].
-
-End-to-end memory networks are based on a recurrent attention mechanism instead of sequencealigned recurrence and have been shown to perform well on simple-language question answering and language modeling tasks [34].
-
-To the best of our knowledge, however, the Transformer is the first transduction model relying entirely on self-attention to compute representations of its input and output without using sequencealigned RNNs or convolution. In the following sections, we will describe the Transformer, motivate self-attention and discuss its advantages over models such as [17, 18] and [9].
-
-## 3 Model Architecture
-
-Most competitive neural sequence transduction models have an encoder-decoder structure [5, 2, 35]. Here, the encoder maps an input sequence of symbol representations ( x 1 , ..., x n ) to a sequence of continuous representations z = ( z 1 , ..., z n ) . Given z , the decoder then generates an output sequence ( y 1 , ..., y m ) of symbols one element at a time. At each step the model is auto-regressive [10], consuming the previously generated symbols as additional input when generating the next.
-
-Figure 1: The Transformer - model architecture.
-
-<!-- image -->
-
-The Transformer follows this overall architecture using stacked self-attention and point-wise, fully connected layers for both the encoder and decoder, shown in the left and right halves of Figure 1, respectively.
-
-## 3.1 Encoder and Decoder Stacks
-
-Encoder: The encoder is composed of a stack of N = 6 identical layers. Each layer has two sub-layers. The first is a multi-head self-attention mechanism, and the second is a simple, positionwise fully connected feed-forward network. We employ a residual connection [11] around each of the two sub-layers, followed by layer normalization [1]. That is, the output of each sub-layer is LayerNorm( x +Sublayer( x )) , where Sublayer( x ) is the function implemented by the sub-layer itself. To facilitate these residual connections, all sub-layers in the model, as well as the embedding layers, produce outputs of dimension d model = 512 .
-
-Decoder: The decoder is also composed of a stack of N = 6 identical layers. In addition to the two sub-layers in each encoder layer, the decoder inserts a third sub-layer, which performs multi-head attention over the output of the encoder stack. Similar to the encoder, we employ residual connections around each of the sub-layers, followed by layer normalization. We also modify the self-attention sub-layer in the decoder stack to prevent positions from attending to subsequent positions. This masking, combined with fact that the output embeddings are offset by one position, ensures that the predictions for position i can depend only on the known outputs at positions less than i .
-
-## 3.2 Attention
-
-An attention function can be described as mapping a query and a set of key-value pairs to an output, where the query, keys, values, and output are all vectors. The output is computed as a weighted sum
-
-## Scaled Dot-Product Attention
-
-<!-- image -->
-
-Figure 2: (left) Scaled Dot-Product Attention. (right) Multi-Head Attention consists of several attention layers running in parallel.
-
-<!-- image -->
-
-of the values, where the weight assigned to each value is computed by a compatibility function of the query with the corresponding key.
-
-## 3.2.1 Scaled Dot-Product Attention
-
-We call our particular attention "Scaled Dot-Product Attention" (Figure 2). The input consists of queries and keys of dimension d k , and values of dimension d v . We compute the dot products of the query with all keys, divide each by √ d k , and apply a softmax function to obtain the weights on the values.
-
-In practice, we compute the attention function on a set of queries simultaneously, packed together into a matrix Q . The keys and values are also packed together into matrices K and V . We compute the matrix of outputs as:
-
-$$\text {Attention} ( Q , K , V ) = \text {softmax} ( \frac { Q K ^ { T } } { \sqrt { d _ { k } } } ) V$$
-
-The two most commonly used attention functions are additive attention [2], and dot-product (multiplicative) attention. Dot-product attention is identical to our algorithm, except for the scaling factor of 1 √ d k . Additive attention computes the compatibility function using a feed-forward network with a single hidden layer. While the two are similar in theoretical complexity, dot-product attention is much faster and more space-efficient in practice, since it can be implemented using highly optimized matrix multiplication code.
-
-While for small values of d k the two mechanisms perform similarly, additive attention outperforms dot product attention without scaling for larger values of d k [3]. We suspect that for large values of d k , the dot products grow large in magnitude, pushing the softmax function into regions where it has extremely small gradients 4 . To counteract this effect, we scale the dot products by 1 √ d k .
-
-## 3.2.2 Multi-Head Attention
-
-Instead of performing a single attention function with d model-dimensional keys, values and queries, we found it beneficial to linearly project the queries, keys and values h times with different, learned linear projections to d k , d k and d v dimensions, respectively. On each of these projected versions of queries, keys and values we then perform the attention function in parallel, yielding d v -dimensional
-
-4 To illustrate why the dot products get large, assume that the components of q and k are independent random variables with mean 0 and variance 1 . Then their dot product, q · k = ∑ d k i =1 q i k i , has mean 0 and variance d k .
-
-output values. These are concatenated and once again projected, resulting in the final values, as depicted in Figure 2.
-
-Multi-head attention allows the model to jointly attend to information from different representation subspaces at different positions. With a single attention head, averaging inhibits this.
-
-$$M u t i { H e a d } ( Q , K , V ) & = \text {Concat} ( h e a d _ { 1 } , \dots , h e a d _ { h } ) W ^ { O } \\ & \text {where head} _ { i } = \text {Attention} ( Q W _ { i } ^ { Q } , K W _ { i } ^ { K } , V W _ { i } ^ { V } )$$
-
-Where the projections are parameter matrices W Q i ∈ R d model × d k , W i K ∈ R d model × d k , W V i ∈ R d model × d v and W O ∈ R hd v × d model .
-
-In this work we employ h = 8 parallel attention layers, or heads. For each of these we use d k = d v = d model /h = 64 . Due to the reduced dimension of each head, the total computational cost is similar to that of single-head attention with full dimensionality.
-
-## 3.2.3 Applications of Attention in our Model
-
-The Transformer uses multi-head attention in three different ways:
-
-- In "encoder-decoder attention" layers, the queries come from the previous decoder layer, and the memory keys and values come from the output of the encoder. This allows every position in the decoder to attend over all positions in the input sequence. This mimics the typical encoder-decoder attention mechanisms in sequence-to-sequence models such as [38, 2, 9].
-- The encoder contains self-attention layers. In a self-attention layer all of the keys, values and queries come from the same place, in this case, the output of the previous layer in the encoder. Each position in the encoder can attend to all positions in the previous layer of the encoder.
-- Similarly, self-attention layers in the decoder allow each position in the decoder to attend to all positions in the decoder up to and including that position. We need to prevent leftward information flow in the decoder to preserve the auto-regressive property. We implement this inside of scaled dot-product attention by masking out (setting to -∞ ) all values in the input of the softmax which correspond to illegal connections. See Figure 2.
-
-## 3.3 Position-wise Feed-Forward Networks
-
-In addition to attention sub-layers, each of the layers in our encoder and decoder contains a fully connected feed-forward network, which is applied to each position separately and identically. This consists of two linear transformations with a ReLU activation in between.
-
-$$F F N ( x ) = \max ( 0 , x W _ { 1 } + b _ { 1 } ) W _ { 2 } + b _ { 2 }$$
-
-While the linear transformations are the same across different positions, they use different parameters from layer to layer. Another way of describing this is as two convolutions with kernel size 1. The dimensionality of input and output is d model = 512 , and the inner-layer has dimensionality d ff = 2048 .
-
-## 3.4 Embeddings and Softmax
-
-Similarly to other sequence transduction models, we use learned embeddings to convert the input tokens and output tokens to vectors of dimension d model. We also use the usual learned linear transformation and softmax function to convert the decoder output to predicted next-token probabilities. In our model, we share the same weight matrix between the two embedding layers and the pre-softmax linear transformation, similar to [30]. In the embedding layers, we multiply those weights by √ d model.
-
-Table 1: Maximum path lengths, per-layer complexity and minimum number of sequential operations for different layer types. n is the sequence length, d is the representation dimension, k is the kernel size of convolutions and r the size of the neighborhood in restricted self-attention.
-
-| Layer Type                  | Complexity per Layer   | Sequential Operations   | Maximum Path Length   |
-|-----------------------------|------------------------|-------------------------|-----------------------|
-| Self-Attention              | O ( n 2 · d )          | O (1)                   | O (1)                 |
-| Recurrent                   | O ( n · d 2 )          | O ( n )                 | O ( n )               |
-| Convolutional               | O ( k · n · d 2 )      | O (1)                   | O ( log k ( n ))      |
-| Self-Attention (restricted) | O ( r · n · d )        | O (1)                   | O ( n/r )             |
-
-## 3.5 Positional Encoding
-
-Since our model contains no recurrence and no convolution, in order for the model to make use of the order of the sequence, we must inject some information about the relative or absolute position of the tokens in the sequence. To this end, we add "positional encodings" to the input embeddings at the bottoms of the encoder and decoder stacks. The positional encodings have the same dimension d model as the embeddings, so that the two can be summed. There are many choices of positional encodings, learned and fixed [9].
-
-In this work, we use sine and cosine functions of different frequencies:
-
-$$P E _ { ( p o s , 2 i ) } & = s i n ( p o s / 1 0 0 0 0 ^ { 2 i / d _ { m o d e l } } ) \\ P E _ { ( p o s , 2 i + 1 ) } & = \cos ( p o s / 1 0 0 0 0 ^ { 2 i / d _ { m o d e l } } )$$
-
-where pos is the position and i is the dimension. That is, each dimension of the positional encoding corresponds to a sinusoid. The wavelengths form a geometric progression from 2 π to 10000 · 2 π . We chose this function because we hypothesized it would allow the model to easily learn to attend by relative positions, since for any fixed offset k , PE pos + k can be represented as a linear function of PE pos .
-
-We also experimented with using learned positional embeddings [9] instead, and found that the two versions produced nearly identical results (see Table 3 row (E)). We chose the sinusoidal version because it may allow the model to extrapolate to sequence lengths longer than the ones encountered during training.
-
-## 4 Why Self-Attention
-
-In this section we compare various aspects of self-attention layers to the recurrent and convolutional layers commonly used for mapping one variable-length sequence of symbol representations ( x 1 , ..., x n ) to another sequence of equal length ( z 1 , ..., z n ) , with x i , z i ∈ R d , such as a hidden layer in a typical sequence transduction encoder or decoder. Motivating our use of self-attention we consider three desiderata.
-
-One is the total computational complexity per layer. Another is the amount of computation that can be parallelized, as measured by the minimum number of sequential operations required.
-
-The third is the path length between long-range dependencies in the network. Learning long-range dependencies is a key challenge in many sequence transduction tasks. One key factor affecting the ability to learn such dependencies is the length of the paths forward and backward signals have to traverse in the network. The shorter these paths between any combination of positions in the input and output sequences, the easier it is to learn long-range dependencies [12]. Hence we also compare the maximum path length between any two input and output positions in networks composed of the different layer types.
-
-As noted in Table 1, a self-attention layer connects all positions with a constant number of sequentially executed operations, whereas a recurrent layer requires O ( n ) sequential operations. In terms of computational complexity, self-attention layers are faster than recurrent layers when the sequence
-
-length n is smaller than the representation dimensionality d , which is most often the case with sentence representations used by state-of-the-art models in machine translations, such as word-piece [38] and byte-pair [31] representations. To improve computational performance for tasks involving very long sequences, self-attention could be restricted to considering only a neighborhood of size r in the input sequence centered around the respective output position. This would increase the maximum path length to O ( n/r ) . We plan to investigate this approach further in future work.
-
-A single convolutional layer with kernel width k &lt; n does not connect all pairs of input and output positions. Doing so requires a stack of O ( n/k ) convolutional layers in the case of contiguous kernels, or O ( log k ( n )) in the case of dilated convolutions [18], increasing the length of the longest paths between any two positions in the network. Convolutional layers are generally more expensive than recurrent layers, by a factor of k . Separable convolutions [6], however, decrease the complexity considerably, to O ( k · n · d + n · d 2 ) . Even with k = n , however, the complexity of a separable convolution is equal to the combination of a self-attention layer and a point-wise feed-forward layer, the approach we take in our model.
-
-As side benefit, self-attention could yield more interpretable models. We inspect attention distributions from our models and present and discuss examples in the appendix. Not only do individual attention heads clearly learn to perform different tasks, many appear to exhibit behavior related to the syntactic and semantic structure of the sentences.
-
-## 5 Training
-
-This section describes the training regime for our models.
-
-## 5.1 Training Data and Batching
-
-We trained on the standard WMT 2014 English-German dataset consisting of about 4.5 million sentence pairs. Sentences were encoded using byte-pair encoding [3], which has a shared sourcetarget vocabulary of about 37000 tokens. For English-French, we used the significantly larger WMT 2014 English-French dataset consisting of 36M sentences and split tokens into a 32000 word-piece vocabulary [38]. Sentence pairs were batched together by approximate sequence length. Each training batch contained a set of sentence pairs containing approximately 25000 source tokens and 25000 target tokens.
-
-## 5.2 Hardware and Schedule
-
-We trained our models on one machine with 8 NVIDIA P100 GPUs. For our base models using the hyperparameters described throughout the paper, each training step took about 0.4 seconds. We trained the base models for a total of 100,000 steps or 12 hours. For our big models,(described on the bottom line of table 3), step time was 1.0 seconds. The big models were trained for 300,000 steps (3.5 days).
-
-## 5.3 Optimizer
-
-We used the Adam optimizer [20] with β 1 = 0 . 9 , β 2 = 0 . 98 and ϵ = 10 -9 . We varied the learning rate over the course of training, according to the formula:
-
-$$l r a t e = d _ { \text {mode} } ^ { - 0 . 5 } \cdot \min ( s t e p _ { - } n u m ^ { - 0 . 5 } , s t e p _ { - } n u m \cdot w a r m u p _ { - } s t e p s ^ { - 1 . 5 } )$$
-
-This corresponds to increasing the learning rate linearly for the first warmup \_ steps training steps, and decreasing it thereafter proportionally to the inverse square root of the step number. We used warmup \_ steps = 4000 .
-
-## 5.4 Regularization
-
-We employ three types of regularization during training:
-
-Table 2: The Transformer achieves better BLEU scores than previous state-of-the-art models on the English-to-German and English-to-French newstest2014 tests at a fraction of the training cost.
-
-| Model                           | BLEU   | BLEU   | Training Cost (FLOPs)   | Training Cost (FLOPs)   |
-|---------------------------------|--------|--------|-------------------------|-------------------------|
-|                                 | EN-DE  | EN-FR  | EN-DE                   | EN-FR                   |
-| ByteNet [18]                    | 23.75  |        |                         |                         |
-| Deep-Att + PosUnk [39]          |        | 39.2   |                         | 1 . 0 · 10 20           |
-| GNMT + RL [38]                  | 24.6   | 39.92  | 2 . 3 · 10 19           | 1 . 4 · 10 20           |
-| ConvS2S [9]                     | 25.16  | 40.46  | 9 . 6 · 10 18           | 1 . 5 · 10 20           |
-| MoE [32]                        | 26.03  | 40.56  | 2 . 0 · 10 19           | 1 . 2 · 10 20           |
-| Deep-Att + PosUnk Ensemble [39] |        | 40.4   |                         | 8 . 0 · 10 20           |
-| GNMT + RL Ensemble [38]         | 26.30  | 41.16  | 1 . 8 · 10 20           | 1 . 1 · 10 21           |
-| ConvS2S Ensemble [9]            | 26.36  | 41.29  | 7 . 7 · 10 19           | 1 . 2 · 10 21           |
-| Transformer (base model)        | 27.3   | 38.1   | 3 . 3 · 10 18           | 3 . 3 · 10 18           |
-| Transformer (big)               | 28.4   | 41.8   | 2 . 3 · 10 19           | 2 . 3 · 10 19           |
-
-Residual Dropout We apply dropout [33] to the output of each sub-layer, before it is added to the sub-layer input and normalized. In addition, we apply dropout to the sums of the embeddings and the positional encodings in both the encoder and decoder stacks. For the base model, we use a rate of P drop = 0 . 1 .
-
-Label Smoothing During training, we employed label smoothing of value ϵ ls = 0 . 1 [36]. This hurts perplexity, as the model learns to be more unsure, but improves accuracy and BLEU score.
-
-## 6 Results
-
-## 6.1 Machine Translation
-
-On the WMT 2014 English-to-German translation task, the big transformer model (Transformer (big) in Table 2) outperforms the best previously reported models (including ensembles) by more than 2 . 0 BLEU, establishing a new state-of-the-art BLEU score of 28 . 4 . The configuration of this model is listed in the bottom line of Table 3. Training took 3 . 5 days on 8 P100 GPUs. Even our base model surpasses all previously published models and ensembles, at a fraction of the training cost of any of the competitive models.
-
-On the WMT 2014 English-to-French translation task, our big model achieves a BLEU score of 41 . 0 , outperforming all of the previously published single models, at less than 1 / 4 the training cost of the previous state-of-the-art model. The Transformer (big) model trained for English-to-French used dropout rate P drop = 0 . 1 , instead of 0 . 3 .
-
-For the base models, we used a single model obtained by averaging the last 5 checkpoints, which were written at 10-minute intervals. For the big models, we averaged the last 20 checkpoints. We used beam search with a beam size of 4 and length penalty α = 0 . 6 [38]. These hyperparameters were chosen after experimentation on the development set. We set the maximum output length during inference to input length + 50 , but terminate early when possible [38].
-
-Table 2 summarizes our results and compares our translation quality and training costs to other model architectures from the literature. We estimate the number of floating point operations used to train a model by multiplying the training time, the number of GPUs used, and an estimate of the sustained single-precision floating-point capacity of each GPU 5 .
-
-## 6.2 Model Variations
-
-To evaluate the importance of different components of the Transformer, we varied our base model in different ways, measuring the change in performance on English-to-German translation on the
-
-5 We used values of 2.8, 3.7, 6.0 and 9.5 TFLOPS for K80, K40, M40 and P100, respectively.
-
-Table 3: Variations on the Transformer architecture. Unlisted values are identical to those of the base model. All metrics are on the English-to-German translation development set, newstest2013. Listed perplexities are per-wordpiece, according to our byte-pair encoding, and should not be compared to per-word perplexities.
-
-|      | N                                         | d model                                   | d ff                                      | h                                         | d k                                       | d v                                       | P drop                                    | ϵ ls                                      | train steps   |   PPL (dev) |   BLEU (dev) | params × 10 6   |
-|------|-------------------------------------------|-------------------------------------------|-------------------------------------------|-------------------------------------------|-------------------------------------------|-------------------------------------------|-------------------------------------------|-------------------------------------------|---------------|-------------|--------------|-----------------|
-| base | 6                                         | 512                                       | 2048                                      | 8                                         | 64                                        | 64                                        | 0.1                                       | 0.1                                       | 100K          |        4.92 |         25.8 | 65              |
-|      |                                           |                                           |                                           | 1                                         | 512                                       | 512                                       |                                           |                                           |               |        5.29 |         24.9 |                 |
-|      |                                           |                                           |                                           | 4                                         | 128                                       | 128                                       |                                           |                                           |               |        5    |         25.5 |                 |
-| (A)  |                                           |                                           |                                           | 16                                        | 32                                        | 32                                        |                                           |                                           |               |        4.91 |         25.8 |                 |
-|      |                                           |                                           |                                           | 32                                        | 16                                        | 16                                        |                                           |                                           |               |        5.01 |         25.4 |                 |
-|      |                                           |                                           |                                           |                                           | 16                                        |                                           |                                           |                                           |               |        5.16 |         25.1 | 58              |
-| (B)  |                                           |                                           |                                           |                                           | 32                                        |                                           |                                           |                                           |               |        5.01 |         25.4 | 60              |
-|      | 2                                         |                                           |                                           |                                           |                                           |                                           |                                           |                                           |               |        6.11 |         23.7 | 36              |
-|      | 4                                         |                                           |                                           |                                           |                                           |                                           |                                           |                                           |               |        5.19 |         25.3 | 50              |
-|      | 8                                         |                                           |                                           |                                           |                                           |                                           |                                           |                                           |               |        4.88 |         25.5 | 80              |
-| (C)  |                                           | 256                                       |                                           |                                           | 32                                        | 32                                        |                                           |                                           |               |        5.75 |         24.5 | 28              |
-|      |                                           | 1024                                      |                                           |                                           | 128                                       | 128                                       |                                           |                                           |               |        4.66 |         26   | 168             |
-|      |                                           |                                           | 1024                                      |                                           |                                           |                                           |                                           |                                           |               |        5.12 |         25.4 | 53              |
-|      |                                           |                                           | 4096                                      |                                           |                                           |                                           |                                           |                                           |               |        4.75 |         26.2 | 90              |
-|      |                                           |                                           |                                           |                                           |                                           |                                           | 0.0                                       |                                           |               |        5.77 |         24.6 |                 |
-|      |                                           |                                           |                                           |                                           |                                           |                                           | 0.2                                       |                                           |               |        4.95 |         25.5 |                 |
-| (D)  |                                           |                                           |                                           |                                           |                                           |                                           |                                           | 0.0                                       |               |        4.67 |         25.3 |                 |
-|      |                                           |                                           |                                           |                                           |                                           |                                           |                                           | 0.2                                       |               |        5.47 |         25.7 |                 |
-| (E)  | positional embedding instead of sinusoids | positional embedding instead of sinusoids | positional embedding instead of sinusoids | positional embedding instead of sinusoids | positional embedding instead of sinusoids | positional embedding instead of sinusoids | positional embedding instead of sinusoids | positional embedding instead of sinusoids |               |        4.92 |         25.7 |                 |
-| big  | 6                                         | 1024                                      | 4096                                      | 16                                        |                                           |                                           | 0.3                                       |                                           | 300K          |        4.33 |         26.4 | 213             |
-
-development set, newstest2013. We used beam search as described in the previous section, but no checkpoint averaging. We present these results in Table 3.
-
-In Table 3 rows (A), we vary the number of attention heads and the attention key and value dimensions, keeping the amount of computation constant, as described in Section 3.2.2. While single-head attention is 0.9 BLEU worse than the best setting, quality also drops off with too many heads.
-
-In Table 3 rows (B), we observe that reducing the attention key size d k hurts model quality. This suggests that determining compatibility is not easy and that a more sophisticated compatibility function than dot product may be beneficial. We further observe in rows (C) and (D) that, as expected, bigger models are better, and dropout is very helpful in avoiding over-fitting. In row (E) we replace our sinusoidal positional encoding with learned positional embeddings [9], and observe nearly identical results to the base model.
-
-## 6.3 English Constituency Parsing
-
-To evaluate if the Transformer can generalize to other tasks we performed experiments on English constituency parsing. This task presents specific challenges: the output is subject to strong structural constraints and is significantly longer than the input. Furthermore, RNN sequence-to-sequence models have not been able to attain state-of-the-art results in small-data regimes [37].
-
-We trained a 4-layer transformer with d model = 1024 on the Wall Street Journal (WSJ) portion of the Penn Treebank [25], about 40K training sentences. We also trained it in a semi-supervised setting, using the larger high-confidence and BerkleyParser corpora from with approximately 17M sentences [37]. We used a vocabulary of 16K tokens for the WSJ only setting and a vocabulary of 32K tokens for the semi-supervised setting.
-
-We performed only a small number of experiments to select the dropout, both attention and residual (section 5.4), learning rates and beam size on the Section 22 development set, all other parameters remained unchanged from the English-to-German base translation model. During inference, we
-
-Table 4: The Transformer generalizes well to English constituency parsing (Results are on Section 23 of WSJ)
-
-| Parser                             | Training                 |   WSJ 23 F1 |
-|------------------------------------|--------------------------|-------------|
-| Vinyals &Kaiser el al. (2014) [37] | WSJ only, discriminative |        88.3 |
-| Petrov et al. (2006) [29]          | WSJ only, discriminative |        90.4 |
-| Zhu et al. (2013) [40]             | WSJ only, discriminative |        90.4 |
-| Dyer et al. (2016) [8]             | WSJ only, discriminative |        91.7 |
-| Transformer (4 layers)             | WSJ only, discriminative |        91.3 |
-| Zhu et al. (2013) [40]             | semi-supervised          |        91.3 |
-| Huang &Harper (2009) [14]          | semi-supervised          |        91.3 |
-| McClosky et al. (2006) [26]        | semi-supervised          |        92.1 |
-| Vinyals &Kaiser el al. (2014) [37] | semi-supervised          |        92.1 |
-| Transformer (4 layers)             | semi-supervised          |        92.7 |
-| Luong et al. (2015) [23]           | multi-task               |        93   |
-| Dyer et al. (2016) [8]             | generative               |        93.3 |
-
-increased the maximum output length to input length + 300 . We used a beam size of 21 and α = 0 . 3 for both WSJ only and the semi-supervised setting.
-
-Our results in Table 4 show that despite the lack of task-specific tuning our model performs surprisingly well, yielding better results than all previously reported models with the exception of the Recurrent Neural Network Grammar [8].
-
-In contrast to RNN sequence-to-sequence models [37], the Transformer outperforms the BerkeleyParser [29] even when training only on the WSJ training set of 40K sentences.
-
-## 7 Conclusion
-
-In this work, we presented the Transformer, the first sequence transduction model based entirely on attention, replacing the recurrent layers most commonly used in encoder-decoder architectures with multi-headed self-attention.
-
-For translation tasks, the Transformer can be trained significantly faster than architectures based on recurrent or convolutional layers. On both WMT 2014 English-to-German and WMT 2014 English-to-French translation tasks, we achieve a new state of the art. In the former task our best model outperforms even all previously reported ensembles.
-
-We are excited about the future of attention-based models and plan to apply them to other tasks. We plan to extend the Transformer to problems involving input and output modalities other than text and to investigate local, restricted attention mechanisms to efficiently handle large inputs and outputs such as images, audio and video. Making generation less sequential is another research goals of ours.
-
-The code we used to train and evaluate our models is available at https://github.com/ tensorflow/tensor2tensor .
-
-Acknowledgements We are grateful to Nal Kalchbrenner and Stephan Gouws for their fruitful comments, corrections and inspiration.
-
-## References
-
-- [1] Jimmy Lei Ba, Jamie Ryan Kiros, and Geoffrey E Hinton. Layer normalization. arXiv preprint arXiv:1607.06450 , 2016.
-- [2] Dzmitry Bahdanau, Kyunghyun Cho, and Yoshua Bengio. Neural machine translation by jointly learning to align and translate. CoRR , abs/1409.0473, 2014.
-- [3] Denny Britz, Anna Goldie, Minh-Thang Luong, and Quoc V. Le. Massive exploration of neural machine translation architectures. CoRR , abs/1703.03906, 2017.
-- [4] Jianpeng Cheng, Li Dong, and Mirella Lapata. Long short-term memory-networks for machine reading. arXiv preprint arXiv:1601.06733 , 2016.
-
-- [5] Kyunghyun Cho, Bart van Merrienboer, Caglar Gulcehre, Fethi Bougares, Holger Schwenk, and Yoshua Bengio. Learning phrase representations using rnn encoder-decoder for statistical machine translation. CoRR , abs/1406.1078, 2014.
-- [6] Francois Chollet. Xception: Deep learning with depthwise separable convolutions. arXiv preprint arXiv:1610.02357 , 2016.
-- [7] Junyoung Chung, Çaglar Gülçehre, Kyunghyun Cho, and Yoshua Bengio. Empirical evaluation of gated recurrent neural networks on sequence modeling. CoRR , abs/1412.3555, 2014.
-- [8] Chris Dyer, Adhiguna Kuncoro, Miguel Ballesteros, and Noah A. Smith. Recurrent neural network grammars. In Proc. of NAACL , 2016.
-- [9] Jonas Gehring, Michael Auli, David Grangier, Denis Yarats, and Yann N. Dauphin. Convolutional sequence to sequence learning. arXiv preprint arXiv:1705.03122v2 , 2017.
-- [10] Alex Graves. Generating sequences with recurrent neural networks. arXiv preprint arXiv:1308.0850 , 2013.
-- [11] Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun. Deep residual learning for image recognition. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition , pages 770-778, 2016.
-- [12] Sepp Hochreiter, Yoshua Bengio, Paolo Frasconi, and Jürgen Schmidhuber. Gradient flow in recurrent nets: the difficulty of learning long-term dependencies, 2001.
-- [13] Sepp Hochreiter and Jürgen Schmidhuber. Long short-term memory. Neural computation , 9(8):1735-1780, 1997.
-- [14] Zhongqiang Huang and Mary Harper. Self-training PCFG grammars with latent annotations across languages. In Proceedings of the 2009 Conference on Empirical Methods in Natural Language Processing , pages 832-841. ACL, August 2009.
-- [15] Rafal Jozefowicz, Oriol Vinyals, Mike Schuster, Noam Shazeer, and Yonghui Wu. Exploring the limits of language modeling. arXiv preprint arXiv:1602.02410 , 2016.
-- [16] Łukasz Kaiser and Samy Bengio. Can active memory replace attention? In Advances in Neural Information Processing Systems, (NIPS) , 2016.
-- [17] Łukasz Kaiser and Ilya Sutskever. Neural GPUs learn algorithms. In International Conference on Learning Representations (ICLR) , 2016.
-- [18] Nal Kalchbrenner, Lasse Espeholt, Karen Simonyan, Aaron van den Oord, Alex Graves, and Koray Kavukcuoglu. Neural machine translation in linear time. arXiv preprint arXiv:1610.10099v2 , 2017.
-- [19] Yoon Kim, Carl Denton, Luong Hoang, and Alexander M. Rush. Structured attention networks. In International Conference on Learning Representations , 2017.
-- [20] Diederik Kingma and Jimmy Ba. Adam: A method for stochastic optimization. In ICLR , 2015.
-- [21] Oleksii Kuchaiev and Boris Ginsburg. Factorization tricks for LSTM networks. arXiv preprint arXiv:1703.10722 , 2017.
-- [22] Zhouhan Lin, Minwei Feng, Cicero Nogueira dos Santos, Mo Yu, Bing Xiang, Bowen Zhou, and Yoshua Bengio. A structured self-attentive sentence embedding. arXiv preprint arXiv:1703.03130 , 2017.
-- [23] Minh-Thang Luong, Quoc V. Le, Ilya Sutskever, Oriol Vinyals, and Lukasz Kaiser. Multi-task sequence to sequence learning. arXiv preprint arXiv:1511.06114 , 2015.
-- [24] Minh-Thang Luong, Hieu Pham, and Christopher D Manning. Effective approaches to attentionbased neural machine translation. arXiv preprint arXiv:1508.04025 , 2015.
-
-- [25] Mitchell P Marcus, Mary Ann Marcinkiewicz, and Beatrice Santorini. Building a large annotated corpus of english: The penn treebank. Computational linguistics , 19(2):313-330, 1993.
-- [26] David McClosky, Eugene Charniak, and Mark Johnson. Effective self-training for parsing. In Proceedings of the Human Language Technology Conference of the NAACL, Main Conference , pages 152-159. ACL, June 2006.
-- [27] Ankur Parikh, Oscar Täckström, Dipanjan Das, and Jakob Uszkoreit. A decomposable attention model. In Empirical Methods in Natural Language Processing , 2016.
-- [28] Romain Paulus, Caiming Xiong, and Richard Socher. A deep reinforced model for abstractive summarization. arXiv preprint arXiv:1705.04304 , 2017.
-- [29] Slav Petrov, Leon Barrett, Romain Thibaux, and Dan Klein. Learning accurate, compact, and interpretable tree annotation. In Proceedings of the 21st International Conference on Computational Linguistics and 44th Annual Meeting of the ACL , pages 433-440. ACL, July 2006.
-- [30] Ofir Press and Lior Wolf. Using the output embedding to improve language models. arXiv preprint arXiv:1608.05859 , 2016.
-- [31] Rico Sennrich, Barry Haddow, and Alexandra Birch. Neural machine translation of rare words with subword units. arXiv preprint arXiv:1508.07909 , 2015.
-- [32] Noam Shazeer, Azalia Mirhoseini, Krzysztof Maziarz, Andy Davis, Quoc Le, Geoffrey Hinton, and Jeff Dean. Outrageously large neural networks: The sparsely-gated mixture-of-experts layer. arXiv preprint arXiv:1701.06538 , 2017.
-- [33] Nitish Srivastava, Geoffrey E Hinton, Alex Krizhevsky, Ilya Sutskever, and Ruslan Salakhutdinov. Dropout: a simple way to prevent neural networks from overfitting. Journal of Machine Learning Research , 15(1):1929-1958, 2014.
-- [34] Sainbayar Sukhbaatar, Arthur Szlam, Jason Weston, and Rob Fergus. End-to-end memory networks. In C. Cortes, N. D. Lawrence, D. D. Lee, M. Sugiyama, and R. Garnett, editors, Advances in Neural Information Processing Systems 28 , pages 2440-2448. Curran Associates, Inc., 2015.
-- [35] Ilya Sutskever, Oriol Vinyals, and Quoc VV Le. Sequence to sequence learning with neural networks. In Advances in Neural Information Processing Systems , pages 3104-3112, 2014.
-- [36] Christian Szegedy, Vincent Vanhoucke, Sergey Ioffe, Jonathon Shlens, and Zbigniew Wojna. Rethinking the inception architecture for computer vision. CoRR , abs/1512.00567, 2015.
-- [37] Vinyals &amp; Kaiser, Koo, Petrov, Sutskever, and Hinton. Grammar as a foreign language. In Advances in Neural Information Processing Systems , 2015.
-- [38] Yonghui Wu, Mike Schuster, Zhifeng Chen, Quoc V Le, Mohammad Norouzi, Wolfgang Macherey, Maxim Krikun, Yuan Cao, Qin Gao, Klaus Macherey, et al. Google's neural machine translation system: Bridging the gap between human and machine translation. arXiv preprint arXiv:1609.08144 , 2016.
-- [39] Jie Zhou, Ying Cao, Xuguang Wang, Peng Li, and Wei Xu. Deep recurrent models with fast-forward connections for neural machine translation. CoRR , abs/1606.04199, 2016.
-- [40] Muhua Zhu, Yue Zhang, Wenliang Chen, Min Zhang, and Jingbo Zhu. Fast and accurate shift-reduce constituent parsing. In Proceedings of the 51st Annual Meeting of the ACL (Volume 1: Long Papers) , pages 434-443. ACL, August 2013.
-
-## Attention Visualizations Input-Input Layer5
-
-Figure 3: An example of the attention mechanism following long-distance dependencies in the encoder self-attention in layer 5 of 6. Many of the attention heads attend to a distant dependency of the verb 'making', completing the phrase 'making...more difficult'. Attentions here shown only for the word 'making'. Different colors represent different heads. Best viewed in color.
-
-<!-- image -->
-
-Input-Input Layer5
-
-Figure 4: Two attention heads, also in layer 5 of 6, apparently involved in anaphora resolution. Top: Full attentions for head 5. Bottom: Isolated attentions from just the word 'its' for attention heads 5 and 6. Note that the attentions are very sharp for this word.
-
-<!-- image -->
-
-Input-Input Layer5
-
-Figure 5: Many of the attention heads exhibit behaviour that seems related to the structure of the sentence. We give two such examples above, from two different heads from the encoder self-attention at layer 5 of 6. The heads clearly learned to perform different tasks.
-
-<!-- image -->
+<file path="docker-compose.yml">
+# docker-compose.yml
+
+services:
+    backend:
+        # `./backend/Dockerfile` を使ってイメージをビルド
+        build: ./backend
+        container_name: academic-reader-backend
+        ## ポートマッピング ##
+        ports:
+            - "8000:8000" # `http://localhost:8000` でアクセスできる
+        ## ボリュームマウント ##
+        volumes:
+            - ./backend:/app
+            # .venv は Docker volume に切り出す（ホストとの環境分離）
+            - backend-venv:/app/.venv
+            # Doclingモデル(HuggingFace)のキャッシュを永続化
+            - model-cache:/root/.cache/huggingface
+        ## 環境 ##
+        environment:
+            - ENV=development # 明示
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                        - driver: nvidia
+                          count: 1
+                          capabilities: [gpu]
+        ## 実行コマンドの明示（常にこちらで実行する） ##
+        command: uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+    frontend:
+        # `./frontend/Dockerfile` を使ってイメージをビルド
+        build: ./frontend
+        container_name: academic-reader-frontend
+        ## ポートマッピング ##
+        ports:
+            - "3000:3000" # `http://localhost:3000` でアクセスできる
+        ## ボリュームマウント ##
+        # ホストの汚染を防ぐため、ホストのパスを指定せず、コンテナ専用のボリュームにする
+        volumes:
+            - ./frontend:/app
+            - /app/node_modules
+        ## 環境 ##
+        environment:
+            - NODE_ENV=development # 明示
+            # ブラウザから叩くURL --> localhost:8000 を指定
+            - NEXT_PUBLIC_API_URL=http://localhost:8000
+            - WATCHPACK_POLLING=true # ホットリロード安定化
+        ## 依存 ##
+        # `cont-backend` コンテナを起動してから `cont-frontend` を起動する
+        depends_on:
+            - backend
+        # 実行コマンドを明示
+        command: npm run dev
+
+volumes:
+    backend-venv:
+    model-cache:
 </file>
 
-<file path="backend/storage/academic/08b60861-1c53-4740-a80c-2801d771f98b/meta.json">
-{
-  "id": "08b60861-1c53-4740-a80c-2801d771f98b",
-  "images": [
-    {
-      "id": "fig_001",
-      "label": "Figure 1",
-      "filename": "fig_001.png"
-    },
-    {
-      "id": "fig_002",
-      "label": "Figure 2",
-      "filename": "fig_002.png"
-    },
-    {
-      "id": "fig_003",
-      "label": "Figure 3",
-      "filename": "fig_003.png"
-    },
-    {
-      "id": "fig_004",
-      "label": "Figure 4",
-      "filename": "fig_004.png"
-    },
-    {
-      "id": "fig_005",
-      "label": "Figure 5",
-      "filename": "fig_005.png"
-    },
-    {
-      "id": "fig_006",
-      "label": "Figure 6",
-      "filename": "fig_006.png"
-    },
-    {
-      "id": "fig_007",
-      "label": "Figure 7",
-      "filename": "fig_007.png"
-    },
-    {
-      "id": "fig_008",
-      "label": "Figure 8",
-      "filename": "fig_008.png"
-    },
-    {
-      "id": "fig_009",
-      "label": "Figure 9",
-      "filename": "fig_009.png"
-    },
-    {
-      "id": "fig_010",
-      "label": "Figure 10",
-      "filename": "fig_010.png"
+<file path="frontend/.gitignore">
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+</file>
+
+<file path="frontend/app/globals.css">
+/* frontend/app/globals.css */
+
+@import "tailwindcss";
+
+:root {
+    --background: #ffffff;
+    --foreground: #171717;
+}
+
+@theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --font-sans: var(--font-geist-sans);
+    --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background: #0a0a0a;
+        --foreground: #ededed;
     }
-  ]
+}
+
+body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: Arial, Helvetica, sans-serif;
 }
 </file>
 
+<file path="frontend/app/layout.tsx">
+// frontend/app/layout.tsx
+
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import { Header } from "@/components/layout/Header";
+
+const geistSans = Geist({
+    variable: "--font-geist-sans",
+    subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+    variable: "--font-geist-mono",
+    subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+    title: "Academic Reader",
+    description: "学術論文リーダー",
+};
+
+export default function RootLayout({
+    children,
+}: Readonly<{
+    children: React.ReactNode;
+}>) {
+    return (
+        <html lang="ja" suppressHydrationWarning>
+            <body
+                suppressHydrationWarning={true}
+                className={`${geistSans.variable} ${geistMono.variable} antialiased
+                flex flex-col h-screen bg-linear-to-br from-white via-white to-white
+                `}>
+                    <Header />
+                <main className="relative px-6 py-8 min-w-0">
+                    {children}
+                </main>
+            </body>
+        </html>
+    );
+}
+</file>
+
+<file path="frontend/app/page.tsx">
+// frontend/app/page.tsx
+
+"use client";
+
+import { CopyButton } from "@/components/ui/CopyButton";
+import { ImageModal } from "@/components/ui/ImageModal";
+import MarkdownViewer from "@/components/ui/MarkdownViewer";
+import {
+    AlertCircle,
+    File,
+    FileText,
+    Image as ImageIcon,
+    Loader2,
+    PanelRightClose,
+    PanelRightOpen,
+    RotateCcw,
+    Upload,
+    Download,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+
+// 型定義更新
+type AcademicImage = {
+    id: string;
+    label: string;
+    url: string;
+};
+
+type ParseResponse = {
+    filename: string;
+    text_length: number;
+    content: string;
+    images: AcademicImage[];
+};
+
+export default function AcademicReaderPage() {
+    const [file, setFile] = useState<File | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [result, setResult] = useState<ParseResponse | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [showImages, setShowImages] = useState(true); // 画像表示トグル
+    // --- モーダル用State ---
+    const [selectedImage, setSelectedImage] = useState<{ url: string; label: string } | null>(null);
+    // --- 表示モードの切り替え（PDFは精度確認用など） ---
+    const [viewMode, setViewMode] = useState<"markdown" | "pdf">("markdown");
+
+    // --- PDF表示用のURL生成とクリーンアップ ---
+    const pdfUrl = useMemo(() => {
+        if (!file) return null;
+        return URL.createObjectURL(file);
+    }, [file]);
+
+    useEffect(() => {
+        // コンポーネントのアンマウント時やファイル変更時にURLを解放
+        return () => {
+            if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+        };
+    }, [pdfUrl]);
+
+    const handleUpload = async () => {
+        if (!file) return;
+        setIsLoading(true);
+        setError(null);
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+            const response = await fetch(`${apiUrl}/api/academic/parse`, {
+                method: "POST",
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.detail || "解析に失敗しました");
+            }
+
+            const data: ParseResponse = await response.json();
+            setResult(data);
+            setShowImages(true); // 解析完了時は画像を表示
+            setViewMode("markdown"); // 解析完了後はMarkdown表示に戻す
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // ダウンロード機能
+    const handleDownload = () => {
+        if (!result || !result.content) return;
+        const blob = new Blob([result.content], { type: "text/markdown" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${result.filename}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    // リセット
+    const handleReset = () => {
+        setFile(null);
+        setResult(null);
+        setError(null);
+        setSelectedImage(null); // 選択画像もクリア
+        setViewMode("markdown");
+    };
+
+    // 結果表示モード
+    if (result) {
+        const hasImages = result.images.length > 0;
+
+        return (
+            <div className="h-full flex flex-col max-w-7xl mx-auto">
+                {/* --- モーダル配置 --- */}
+                <ImageModal
+                    isOpen={!!selectedImage}
+                    onClose={() => setSelectedImage(null)}
+                    imageUrl={
+                        selectedImage
+                            ? `${process.env.NEXT_PUBLIC_API_URL}${selectedImage.url}`
+                            : null
+                    }
+                    altText={selectedImage?.label}
+                />
+                {/* ヘッダー */}
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                            <FileText className="text-blue-600" />
+                            {result.filename}
+                        </h2>
+                        <div className="text-xs text-gray-500 mt-1 font-mono">
+                            文字数: {result.text_length.toLocaleString()}
+                        </div>
+                    </div>
+
+                    <div className="flex gap-4 items-center">
+                        {/* --- 表示モード切り替えトグル --- */}
+                        <div className="bg-gray-100 p-1 rounded-lg flex items-center">
+                            <button
+                                onClick={() => setViewMode("markdown")}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${viewMode === "markdown"
+                                        ? "bg-white text-blue-600 shadow-sm"
+                                        : "text-gray-500 hover:text-gray-700"
+                                    }`}>
+                                <FileText size={14} />
+                                解析結果
+                            </button>
+                            <button
+                                onClick={() => setViewMode("pdf")}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${viewMode === "pdf"
+                                        ? "bg-white text-blue-600 shadow-sm"
+                                        : "text-gray-500 hover:text-gray-700"
+                                    }`}>
+                                <File size={14} />
+                                原文PDF
+                            </button>
+                        </div>
+
+                        <div className="flex items-center gap-2 border-l border-gray-200 pl-4">
+                            <div
+                                className={
+                                    viewMode === "pdf" ? "opacity-50 pointer-events-none" : ""
+                                }>
+                                <CopyButton text={result.content} label="全文コピー" />
+                            </div>
+                            <button
+                                onClick={handleDownload}
+                                className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all">
+                                <Download size={14} /> ダウンロード
+                            </button>
+
+                            {/* 画像トグルボタン */}
+                            {hasImages && (
+                                <button
+                                    onClick={() => setShowImages(!showImages)}
+                                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md border bg-white text-slate-500 border-slate-200 hover:bg-slate-50 transition-all"
+                                    title={showImages ? "画像を非表示にする" : "画像を表示する"}>
+                                    {showImages ? (
+                                        <PanelRightClose size={16} />
+                                    ) : (
+                                        <PanelRightOpen size={16} />
+                                    )}
+                                    {showImages ? "画像非表示" : "画像を表示"}
+                                </button>
+                            )}
+
+                            <button
+                                onClick={handleReset}
+                                className="flex items-center gap-2 px-3 py-2 text-sm rounded-2xl text-gray-600 hover:bg-gray-100/50 transition-colors">
+                                <RotateCcw size={16} />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex flex-1 gap-6 overflow-hidden overflow-x-hidden">
+                    {/* 左カラム: Markdown本文 OR PDFビューワー */}
+                    <div
+                        className={`
+                            flex-1 relative
+                            ${viewMode === "markdown"
+                                ? "overflow-y-auto pb-20 pr-2"
+                                : "h-full overflow-hidden"
+                            }
+                        `}>
+                        {viewMode === "markdown" ? (
+                            // --- Markdown表示モード ---
+                            <MarkdownViewer content={result.content} />
+                        ) : (
+                            // --- PDF表示モード ---
+                            <div className="w-full h-full bg-gray-100 rounded-lg overflow-hidden border border-gray-300">
+                                {pdfUrl ? (
+                                    <iframe
+                                        src={`${pdfUrl}#view=FitH&navpanes=0`}
+                                        className="w-full h-full border-none"
+                                        title="PDF Preview"
+                                    />
+                                ) : (
+                                    <div className="flex items-center justify-center h-full text-gray-400">
+                                        PDFを表示できません
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* 右カラム: 画像一覧 */}
+                    {hasImages && showImages && (
+                        <div className="w-96 shrink-0 flex flex-col border-l border-gray-200 pl-4 -mr-6 pr-6 pt-2 transition-all">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="font-semibold text-gray-700 flex items-center gap-2">
+                                    <ImageIcon size={18} />
+                                    抽出画像 ({result.images.length})
+                                </h3>
+                                <button
+                                    onClick={() => setShowImages(false)}
+                                    className="p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-200 rounded transition-colors"
+                                    title="画像を非表示にする">
+                                    <PanelRightClose size={16} />
+                                </button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto space-y-6 pr-2 pb-20">
+                                {result.images.map((img) => (
+                                    <div
+                                        key={img.id}
+                                        className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow">
+                                        <div
+                                            className="aspect-auto bg-gray-50 rounded-md overflow-hidden mb-2 flex items-center justify-center relative group cursor-pointer"
+                                            onClick={() =>
+                                                setSelectedImage({ url: img.url, label: img.label })
+                                            } // モーダルを開く
+                                        >
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img
+                                                src={`${process.env.NEXT_PUBLIC_API_URL}${img.url}`}
+                                                alt={img.label}
+                                                className="max-w-full max-h-60 object-contain hover:scale-105 transition-transform duration-200"
+                                            />
+                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center">
+                                                <div className="bg-black/50 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    拡大表示
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center justify-between px-1">
+                                            <span className="text-sm font-bold text-gray-700">
+                                                {img.label}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+    // アップロード待機モード
+    return (
+        <div className="h-full flex flex-col items-center justify-center max-w-2xl mx-auto p-6 animate-in fade-in zoom-in-95 duration-300">
+            <div className="mb-8 text-center">
+                <h1 className="text-2xl font-bold text-gray-800 mb-2">学術論文リーダー</h1>
+                <p className="text-gray-500">
+                    PDFをアップロードして、高精度な構造解析（数式・表・図版）を実行します
+                </p>
+            </div>
+
+            <div className="w-full border-2 border-dashed rounded-2xl p-12 text-center bg-white hover:border-gray-400 transition-all">
+                <input
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                    id="file-input"
+                />
+                <label htmlFor="file-input" className="cursor-pointer">
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="w-16 h-16 rounded-full flex items-center justify-center bg-gray-100">
+                            {file ? (
+                                <FileText className="w-8 h-8 text-green-600" />
+                            ) : (
+                                <Upload className="w-8 h-8 text-gray-400" />
+                            )}
+                        </div>
+                        {file ? (
+                            <div>
+                                <p className="text-lg font-medium text-gray-800">{file.name}</p>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    {(file.size / 1024 / 1024).toFixed(2)} MB
+                                </p>
+                            </div>
+                        ) : (
+                            <p className="text-lg font-medium text-gray-700">PDFファイルを選択</p>
+                        )}
+                    </div>
+                </label>
+            </div>
+
+            {error && (
+                <div className="mt-6 p-4 w-full bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-700 animate-in slide-in-from-top-2">
+                    <AlertCircle size={20} />
+                    <span className="text-sm font-medium">{error}</span>
+                </div>
+            )}
+
+            {file && (
+                <button
+                    onClick={handleUpload}
+                    disabled={isLoading}
+                    className="mt-8 w-full max-w-sm py-3 px-6 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-all shadow-md flex items-center justify-center gap-2">
+                    {isLoading ? (
+                        <>
+                            <Loader2 className="animate-spin" />
+                            解析中...
+                        </>
+                    ) : (
+                        <>
+                            <FileText />
+                            解析を開始する
+                        </>
+                    )}
+                </button>
+            )}
+        </div>
+    );
+}
+</file>
+
+<file path="frontend/Dockerfile">
+# frontend/Dockerfile
+
+## ベースイメージ ##
+FROM node:20-alpine
+
+## 作業ディレクトリを設定 ##
+WORKDIR /app
+
+## package.json と lock ファイルを先にコピー ##
+COPY package*.json ./
+
+## 依存関係をインストール ##
+RUN npm install
+
+## アプリのコードをコピー ##
+COPY . .
+
+## Next.js 開発サーバーのポート（明示的に記載） ##
+EXPOSE 3000
+
+## コンテナ起動時に実行するコマンド ##
+CMD ["npm", "run", "dev"]
+</file>
+
+<file path="frontend/eslint.config.mjs">
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
+
+const eslintConfig = defineConfig([
+    ...nextVitals,
+    ...nextTs,
+    // Override default ignores of eslint-config-next.
+    globalIgnores([
+        // Default ignores of eslint-config-next:
+        ".next/**",
+        "out/**",
+        "build/**",
+        "next-env.d.ts",
+    ]),
+]);
+
+export default eslintConfig;
+</file>
+
+<file path="frontend/next.config.ts">
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+    /* config options here */
+};
+
+export default nextConfig;
+</file>
+
+<file path="frontend/package.json">
+{
+    "name": "academic-reader-frontend",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start",
+        "lint": "eslint",
+        "api:gen": "openapi-typescript http://localhost:8000/openapi.json -o ./types/api.ts"
+    },
+    "dependencies": {
+        "lucide-react": "^0.575.0",
+        "mermaid": "^11.12.3",
+        "next": "16.1.6",
+        "openapi-typescript": "^7.13.0",
+        "react": "19.2.3",
+        "react-dom": "19.2.3",
+        "react-markdown": "^10.1.0",
+        "react-syntax-highlighter": "^16.1.0",
+        "rehype-katex": "^7.0.1",
+        "rehype-raw": "^7.0.0",
+        "remark-breaks": "^4.0.0",
+        "remark-gfm": "^4.0.1",
+        "remark-github-blockquote-alert": "^2.0.1",
+        "remark-math": "^6.0.0"
+    },
+    "devDependencies": {
+        "@tailwindcss/postcss": "^4",
+        "@types/node": "^20",
+        "@types/react": "^19",
+        "@types/react-dom": "^19",
+        "@types/react-syntax-highlighter": "^15.5.13",
+        "eslint": "^9",
+        "eslint-config-next": "16.1.6",
+        "tailwindcss": "^4",
+        "typescript": "^5"
+    }
+}
+</file>
+
+<file path="frontend/postcss.config.mjs">
+const config = {
+    plugins: {
+        "@tailwindcss/postcss": {},
+    },
+};
+
+export default config;
+</file>
+
+<file path="frontend/tailwind.config.js">
+// tailwind.config.js
+/** @type {import('tailwindcss').Config} */
+export default {
+    content: [
+        "./app/**/*.{js,ts,jsx,tsx}",
+        "./components/**/*.{js,ts,jsx,tsx}",
+        "./hooks/**/*.{js,ts,jsx,tsx}",
+    ],
+    theme: {
+        extend: {},
+    },
+    plugins: [],
+};
+</file>
+
+<file path="frontend/tsconfig.json">
+{
+    "compilerOptions": {
+        "target": "ES2017",
+        "lib": [
+            "dom",
+            "dom.iterable",
+            "esnext"
+        ],
+        "allowJs": true,
+        "skipLibCheck": true,
+        "strict": true,
+        "noEmit": true,
+        "esModuleInterop": true,
+        "module": "esnext",
+        "moduleResolution": "bundler",
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "jsx": "react-jsx",
+        "incremental": true,
+        "plugins": [
+            {
+                "name": "next"
+            }
+        ],
+        "paths": {
+            "@/*": [
+                "./*"
+            ]
+        }
+    },
+    "include": [
+        "next-env.d.ts",
+        "**/*.ts",
+        "**/*.tsx",
+        ".next/types/**/*.ts",
+        ".next/dev/types/**/*.ts",
+        "**/*.mts"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}
+</file>
+
+<file path="README.md">
+# Academic Reader
+
+**Academic Reader** は、学術論文のPDFを高精度に解析し、Markdownテキストと画像（図表）として抽出・表示するローカル専用のWebアプリケーションです。
+
+強力な文書解析ライブラリである [Docling](https://github.com/DS4SD/docling) をバックエンドに採用しており、複雑な段組み、数式、表、図版を含む論文PDFを正確に構造化して読み取ることができます。
+
+![スクリーンショット](フロントエンドのスクリーンショット添付予定)
+
+## 開発目的
+
+* 英語の学術論文を快適に読むために作成しました。
+
+## 課題と解決策
+
+* 英語の論文PDFは、ブラウザで表示してもブラウザの翻訳機能は使えず、Google翻訳などのソフトにテキストを貼り付けることで翻訳します。しかし、文字数制限もあり、不便でした。
+* また、LLMに翻訳させるアプローチもありますが、トークン消費量が多く、解説もさせる場合は「翻訳」→「解説」とLLMによる情報の加工が2回行われることになり、正確である保証はありません。
+* そこで、Doclingを用いてMarkdownに変換してブラウザ上に表示すれば、ブラウザの翻訳機能をそのまま利用でき、英語 <--> 日本語 を切り替えながら読み進めることが可能です。
+* また、高精度なMarkdownとして出力されるため、LLMに与えるコンテキストとしても最適です。（LaTeX記法の数式や、構造化されたテーブル出力にも対応）
+* 画像も抽出されているため、画像のみをダウンロードすることも可能です。（NotebookLM向けのクリーンな資料作成にも適しています）
+
+## オフラインツール
+
+* 技術スタックはWebアプリ向けですが、Dockerを利用しローカルサーバーを起動して利用するオフラインツールとしての運用を想定しています。
+* **理由**:
+  * Docklingは内部で高精度なOCRモデルを利用しており、GPUによる処理が必要。
+  * クラウドでのGPUデプロイは通常と比べコストが高く、今回の処理ではそこまで高性能のGPUは不要。
+  * 用途的にもWeb上に公開する必要性があまりない。
+
+## 主な機能
+
+* **PDFの高精度構造解析**: DoclingによるPDFの読み取り（数式、表、段落の認識）。
+* **図表の自動抽出**: 論文内に含まれるFigure（図）やTable（表）を画像として自動で切り出し、サイドパネルに一覧表示。
+* **Markdownビューワー**: 抽出されたテキストを、数式対応（KaTeX）のクリーンなMarkdownとして表示。
+* **原文PDFプレビュー**: 解析結果と元のPDFをワンクリックで切り替えて比較確認が可能。
+* **1クリックコピー**: 解析されたMarkdownの全文をクリップボードに一瞬でコピー。
+* **1クリックダウンロード**: 解析されたMarkdownの全文をその場で`.md`ファイルとしてダウンロード。
+
+## 技術スタック
+
+* **Backend**
+  * Python 3.12
+  * FastAPI (APIサーバー)
+  * Docling (PDF解析・OCR)
+  * PyTorch (GPUアクセラレーション)
+  * uv (高速なパッケージマネージャー)
+* **Frontend**
+  * Next.js (React)
+  * Tailwind CSS
+  * React Markdown / rehype-katex (Markdown・数式レンダリング)
+* **Infrastructure**
+  * Docker / Docker Compose
+
+## セットアップと起動方法
+
+本システムは、Docker環境での実行を推奨しています。コンテナ内でGPUを使用するための設定（`nvidia-container-toolkit`）が必要です。
+
+### 1. 準備
+
+初回起動時のみ、バックエンドの依存関係ファイル（`uv.lock`）を生成しておく必要があります。
+※すでに生成済みの場合はスキップしてください。
+
+```bash
+cd backend
+uv sync --frozen --no-dev
+cd ..
+
+```
+
+### 2. 環境変数の設定
+
+`backend` と `frontend` のディレクトリに、それぞれ環境変数ファイルを作成します。
+リポジトリにある `.example` ファイルをコピーして利用してください。
+
+```bash
+# Backend
+cp backend/.env.example backend/.env
+
+# Frontend
+cp frontend/.env.local.example frontend/.env.local
+
+```
+
+### 3. Docker Compose での起動
+
+ルートディレクトリで以下のコマンドを実行します。
+
+```bash
+docker compose up --build
+
+```
+
+* バックエンド: `http://localhost:8000`
+* フロントエンド: `http://localhost:3000`
+
+> **Note**: 初回起動時は、Doclingが必要とするレイアウト解析やOCR用のモデルデータ（数GB）をHugging Faceからダウンロードするため、最初の解析に時間がかかります。モデルデータはDockerのボリューム（`model-cache`）に永続化されるため、次回以降は高速に処理されます。
+
+## ディレクトリ構成
+
+```text
+academic-reader/
+├── backend/                # FastAPI バックエンド
+│   ├── src/
+│   │   ├── core/           # 設定、モデル初期化
+│   │   └── services/
+│   │       └── academic/   # PDF解析ロジック、APIルーター
+│   ├── pyproject.toml      # 依存関係定義
+│   └── Dockerfile
+├── frontend/               # Next.js フロントエンド
+│   ├── app/                # UIページ構成
+│   ├── components/         # 共通コンポーネント (MarkdownViewer, ImageModal等)
+│   ├── package.json
+│   └── Dockerfile
+└── docker-compose.yml      # コンテナ構成定義
+
+```
+</file>
+
 <file path=".gitignore">
+# .gitignore
+# Gitでバージョン管理の対象から除外したいファイルやディレクトリを指定するための設定ファイル。
+# リポジトリに含める必要のないものを誤ってコミットするのを防ぐ。
+
+# ==================================================
+# プロジェクト固有の指定
+# ==================================================
+
+storage/
+**/
+
+
+# ↓GitHubのテンプレート由来↓
+# ==================================================
+# Next.js
+# ==================================================
+
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env.local
+.env
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# ==================================================
+# Python
+# ==================================================
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -1046,48 +2339,6 @@ marimo/_lsp/
 __marimo__/
 </file>
 
-<file path="backend/.python-version">
-3.12
-</file>
-
-<file path="backend/Dockerfile">
-# backend/Dockerfile
-
-## ベースイメージ ##
-FROM python:3.12-slim
-
-# OpenCV/RapidOCRに必要なシステムライブラリをインストール
-RUN apt-get update && apt-get install -y \
-    libgl1 \
-    libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
-
-## 作業ディレクトリを設定 ##
-WORKDIR /app
-
-## uvをインストール ##
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
-
-## uvのvenv作成場所を明示 ##
-ENV UV_PROJECT_ENVIRONMENT=/app/.venv
-
-## 依存関係定義のみ先にコピー ##
-COPY pyproject.toml uv.lock ./
-
-## 依存関係のインストール ##
-# --frozenでlockファイルを厳密に再現
-RUN uv sync --frozen --no-dev
-
-## アプリのコードをコピー ##
-COPY . .
-
-## FastAPI 開発サーバーのポート（明示的に記載） ##
-EXPOSE 8000
-
-## コンテナ起動時に実行するコマンド ##
-CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
-</file>
-
 <file path="backend/main.py">
 # backend/main.py
 
@@ -1201,474 +2452,6 @@ def read_root():
 
 
 # uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-</file>
-
-<file path="backend/pyproject.toml">
-[project]
-name = "academic-reader-backend"
-version = "0.1.0"
-description = "Academic Paper Reader powered by Docling"
-requires-python = ">=3.12"
-dependencies = [
-    # APIサーバー関連
-    "fastapi>=0.128.0",
-    "uvicorn>=0.40.0",
-    "python-multipart>=0.0.21", # PDFファイルのアップロード受け取りに必須
-    "dotenv>=0.9.9",            # .env読み込み用
-    
-    # Docling & AIモデル関連
-    "docling>=2.66.0",
-    "torch>=2.6.0",             # GPUを用いた高速処理用
-    "torchvision>=0.21.0",
-    "rapidocr-onnxruntime>=1.4.4", # Doclingの日本語OCRエンジン用
-]
-
-[[tool.uv.index]]
-name = "pytorch-cu124"
-url = "https://download.pytorch.org/whl/cu124"
-explicit = true
-
-[tool.uv.sources]
-torch = { index = "pytorch-cu124" }
-torchvision = { index = "pytorch-cu124" }
-
-[tool.ruff]
-line-length = 120
-</file>
-
-<file path="docker-compose.yml">
-# docker-compose.yml
-
-services:
-    backend:
-        # `./backend/Dockerfile` を使ってイメージをビルド
-        build: ./backend
-        container_name: academic-reader-backend
-        ## ポートマッピング ##
-        ports:
-            - "8000:8000" # `http://localhost:8000` でアクセスできる
-        ## ボリュームマウント ##
-        volumes:
-            - ./backend:/app
-            # .venv は Docker volume に切り出す（ホストとの環境分離）
-            - backend-venv:/app/.venv
-            # Doclingモデル(HuggingFace)のキャッシュを永続化
-            - model-cache:/root/.cache/huggingface
-            # PDFと抽出画像・Markdownの保存先を永続化
-            - ./storage:/app/storage
-        ## 環境 ##
-        environment:
-            - ENV=development # 明示
-        deploy:
-            resources:
-                reservations:
-                    devices:
-                        - driver: nvidia
-                          count: 1
-                          capabilities: [gpu]
-        ## 実行コマンドの明示（常にこちらで実行する） ##
-        command: uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-
-    frontend:
-        # `./frontend/Dockerfile` を使ってイメージをビルド
-        build: ./frontend
-        container_name: academic-reader-frontend
-        ## ポートマッピング ##
-        ports:
-            - "3000:3000" # `http://localhost:3000` でアクセスできる
-        ## ボリュームマウント ##
-        # ホストの汚染を防ぐため、ホストのパスを指定せず、コンテナ専用のボリュームにする
-        volumes:
-            - ./frontend:/app
-            - /app/node_modules
-        ## 環境 ##
-        environment:
-            - NODE_ENV=development # 明示
-            # ブラウザから叩くURL --> localhost:8000 を指定
-            - NEXT_PUBLIC_API_URL=http://localhost:8000
-            - WATCHPACK_POLLING=true # ホットリロード安定化
-        ## 依存 ##
-        # `cont-backend` コンテナを起動してから `cont-frontend` を起動する
-        depends_on:
-            - backend
-        # 実行コマンドを明示
-        command: npm run dev
-
-volumes:
-    backend-venv:
-    model-cache:
-</file>
-
-<file path="frontend/.gitignore">
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-</file>
-
-<file path="frontend/app/globals.css">
-@import "tailwindcss";
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
-</file>
-
-<file path="frontend/app/layout.tsx">
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-export const metadata: Metadata = {
-  title: "Create Next App",
-  description: "Generated by create next app",
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
-    </html>
-  );
-}
-</file>
-
-<file path="frontend/app/page.tsx">
-import Image from "next/image";
-
-export default function Home() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
-}
-</file>
-
-<file path="frontend/Dockerfile">
-# frontend/Dockerfile
-
-## ベースイメージ ##
-FROM node:20-alpine
-
-## 作業ディレクトリを設定 ##
-WORKDIR /app
-
-## package.json と lock ファイルを先にコピー ##
-COPY package*.json ./
-
-## 依存関係をインストール ##
-RUN npm install
-
-## アプリのコードをコピー ##
-COPY . .
-
-## Next.js 開発サーバーのポート（明示的に記載） ##
-EXPOSE 3000
-
-## コンテナ起動時に実行するコマンド ##
-CMD ["npm", "run", "dev"]
-</file>
-
-<file path="frontend/eslint.config.mjs">
-import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTs from "eslint-config-next/typescript";
-
-const eslintConfig = defineConfig([
-    ...nextVitals,
-    ...nextTs,
-    // Override default ignores of eslint-config-next.
-    globalIgnores([
-        // Default ignores of eslint-config-next:
-        ".next/**",
-        "out/**",
-        "build/**",
-        "next-env.d.ts",
-    ]),
-]);
-
-export default eslintConfig;
-</file>
-
-<file path="frontend/next.config.ts">
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-    /* config options here */
-};
-
-export default nextConfig;
-</file>
-
-<file path="frontend/package.json">
-{
-    "name": "academic-reader-frontend",
-    "version": "0.1.0",
-    "private": true,
-    "scripts": {
-        "dev": "next dev",
-        "build": "next build",
-        "start": "next start",
-        "lint": "eslint",
-        "api:gen": "openapi-typescript http://localhost:8000/openapi.json -o ./types/api.ts"
-    },
-    "dependencies": {
-        "lucide-react": "^0.575.0",
-        "mermaid": "^11.12.3",
-        "next": "16.1.6",
-        "openapi-typescript": "^7.13.0",
-        "react": "19.2.3",
-        "react-dom": "19.2.3",
-        "react-markdown": "^10.1.0",
-        "react-syntax-highlighter": "^16.1.0",
-        "rehype-katex": "^7.0.1",
-        "rehype-raw": "^7.0.0",
-        "remark-breaks": "^4.0.0",
-        "remark-gfm": "^4.0.1",
-        "remark-github-blockquote-alert": "^2.0.1",
-        "remark-math": "^6.0.0"
-    },
-    "devDependencies": {
-        "@tailwindcss/postcss": "^4",
-        "@types/node": "^20",
-        "@types/react": "^19",
-        "@types/react-dom": "^19",
-        "@types/react-syntax-highlighter": "^15.5.13",
-        "eslint": "^9",
-        "eslint-config-next": "16.1.6",
-        "tailwindcss": "^4",
-        "typescript": "^5"
-    }
-}
-</file>
-
-<file path="frontend/postcss.config.mjs">
-const config = {
-    plugins: {
-        "@tailwindcss/postcss": {},
-    },
-};
-
-export default config;
-</file>
-
-<file path="frontend/public/file.svg">
-<svg fill="none" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M14.5 13.5V5.41a1 1 0 0 0-.3-.7L9.8.29A1 1 0 0 0 9.08 0H1.5v13.5A2.5 2.5 0 0 0 4 16h8a2.5 2.5 0 0 0 2.5-2.5m-1.5 0v-7H8v-5H3v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1M9.5 5V2.12L12.38 5zM5.13 5h-.62v1.25h2.12V5zm-.62 3h7.12v1.25H4.5zm.62 3h-.62v1.25h7.12V11z" clip-rule="evenodd" fill="#666" fill-rule="evenodd"/></svg>
-</file>
-
-<file path="frontend/public/globe.svg">
-<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><g clip-path="url(#a)"><path fill-rule="evenodd" clip-rule="evenodd" d="M10.27 14.1a6.5 6.5 0 0 0 3.67-3.45q-1.24.21-2.7.34-.31 1.83-.97 3.1M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.48-1.52a7 7 0 0 1-.96 0H7.5a4 4 0 0 1-.84-1.32q-.38-.89-.63-2.08a40 40 0 0 0 3.92 0q-.25 1.2-.63 2.08a4 4 0 0 1-.84 1.31zm2.94-4.76q1.66-.15 2.95-.43a7 7 0 0 0 0-2.58q-1.3-.27-2.95-.43a18 18 0 0 1 0 3.44m-1.27-3.54a17 17 0 0 1 0 3.64 39 39 0 0 1-4.3 0 17 17 0 0 1 0-3.64 39 39 0 0 1 4.3 0m1.1-1.17q1.45.13 2.69.34a6.5 6.5 0 0 0-3.67-3.44q.65 1.26.98 3.1M8.48 1.5l.01.02q.41.37.84 1.31.38.89.63 2.08a40 40 0 0 0-3.92 0q.25-1.2.63-2.08a4 4 0 0 1 .85-1.32 7 7 0 0 1 .96 0m-2.75.4a6.5 6.5 0 0 0-3.67 3.44 29 29 0 0 1 2.7-.34q.31-1.83.97-3.1M4.58 6.28q-1.66.16-2.95.43a7 7 0 0 0 0 2.58q1.3.27 2.95.43a18 18 0 0 1 0-3.44m.17 4.71q-1.45-.12-2.69-.34a6.5 6.5 0 0 0 3.67 3.44q-.65-1.27-.98-3.1" fill="#666"/></g><defs><clipPath id="a"><path fill="#fff" d="M0 0h16v16H0z"/></clipPath></defs></svg>
-</file>
-
-<file path="frontend/public/next.svg">
-<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 394 80"><path fill="#000" d="M262 0h68.5v12.7h-27.2v66.6h-13.6V12.7H262V0ZM149 0v12.7H94v20.4h44.3v12.6H94v21h55v12.6H80.5V0h68.7zm34.3 0h-17.8l63.8 79.4h17.9l-32-39.7 32-39.6h-17.9l-23 28.6-23-28.6zm18.3 56.7-9-11-27.1 33.7h17.8l18.3-22.7z"/><path fill="#000" d="M81 79.3 17 0H0v79.3h13.6V17l50.2 62.3H81Zm252.6-.4c-1 0-1.8-.4-2.5-1s-1.1-1.6-1.1-2.6.3-1.8 1-2.5 1.6-1 2.6-1 1.8.3 2.5 1a3.4 3.4 0 0 1 .6 4.3 3.7 3.7 0 0 1-3 1.8zm23.2-33.5h6v23.3c0 2.1-.4 4-1.3 5.5a9.1 9.1 0 0 1-3.8 3.5c-1.6.8-3.5 1.3-5.7 1.3-2 0-3.7-.4-5.3-1s-2.8-1.8-3.7-3.2c-.9-1.3-1.4-3-1.4-5h6c.1.8.3 1.6.7 2.2s1 1.2 1.6 1.5c.7.4 1.5.5 2.4.5 1 0 1.8-.2 2.4-.6a4 4 0 0 0 1.6-1.8c.3-.8.5-1.8.5-3V45.5zm30.9 9.1a4.4 4.4 0 0 0-2-3.3 7.5 7.5 0 0 0-4.3-1.1c-1.3 0-2.4.2-3.3.5-.9.4-1.6 1-2 1.6a3.5 3.5 0 0 0-.3 4c.3.5.7.9 1.3 1.2l1.8 1 2 .5 3.2.8c1.3.3 2.5.7 3.7 1.2a13 13 0 0 1 3.2 1.8 8.1 8.1 0 0 1 3 6.5c0 2-.5 3.7-1.5 5.1a10 10 0 0 1-4.4 3.5c-1.8.8-4.1 1.2-6.8 1.2-2.6 0-4.9-.4-6.8-1.2-2-.8-3.4-2-4.5-3.5a10 10 0 0 1-1.7-5.6h6a5 5 0 0 0 3.5 4.6c1 .4 2.2.6 3.4.6 1.3 0 2.5-.2 3.5-.6 1-.4 1.8-1 2.4-1.7a4 4 0 0 0 .8-2.4c0-.9-.2-1.6-.7-2.2a11 11 0 0 0-2.1-1.4l-3.2-1-3.8-1c-2.8-.7-5-1.7-6.6-3.2a7.2 7.2 0 0 1-2.4-5.7 8 8 0 0 1 1.7-5 10 10 0 0 1 4.3-3.5c2-.8 4-1.2 6.4-1.2 2.3 0 4.4.4 6.2 1.2 1.8.8 3.2 2 4.3 3.4 1 1.4 1.5 3 1.5 5h-5.8z"/></svg>
-</file>
-
-<file path="frontend/public/vercel.svg">
-<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1155 1000"><path d="m577.3 0 577.4 1000H0z" fill="#fff"/></svg>
-</file>
-
-<file path="frontend/public/window.svg">
-<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5h13v10a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1zM0 1h16v11.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 12.5zm3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5M7 4.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m1.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5" fill="#666"/></svg>
-</file>
-
-<file path="frontend/tailwind.config.js">
-// tailwind.config.js
-/** @type {import('tailwindcss').Config} */
-export default {
-    content: [
-        "./app/**/*.{js,ts,jsx,tsx}",
-        "./components/**/*.{js,ts,jsx,tsx}",
-        "./hooks/**/*.{js,ts,jsx,tsx}",
-    ],
-    theme: {
-        extend: {},
-    },
-    plugins: [],
-};
-</file>
-
-<file path="frontend/tsconfig.json">
-{
-    "compilerOptions": {
-        "target": "ES2017",
-        "lib": [
-            "dom",
-            "dom.iterable",
-            "esnext"
-        ],
-        "allowJs": true,
-        "skipLibCheck": true,
-        "strict": true,
-        "noEmit": true,
-        "esModuleInterop": true,
-        "module": "esnext",
-        "moduleResolution": "bundler",
-        "resolveJsonModule": true,
-        "isolatedModules": true,
-        "jsx": "react-jsx",
-        "incremental": true,
-        "plugins": [
-            {
-                "name": "next"
-            }
-        ],
-        "paths": {
-            "@/*": [
-                "./*"
-            ]
-        }
-    },
-    "include": [
-        "next-env.d.ts",
-        "**/*.ts",
-        "**/*.tsx",
-        ".next/types/**/*.ts",
-        ".next/dev/types/**/*.ts",
-        "**/*.mts"
-    ],
-    "exclude": [
-        "node_modules"
-    ]
-}
-</file>
-
-<file path="README.md">
-# academic-reader
-Doclingは非常に強力ですがVRAMやメモリを大きく消費し、モデルのロード時間もかかるため、ローカル環境にDockerで専用アプリとして隔離して立ち上げて運用。
 </file>
 
 </files>
