@@ -4,7 +4,7 @@
 
 強力な文書解析ライブラリである [Docling](https://github.com/DS4SD/docling) をバックエンドに採用しており、複雑な段組み、数式、表、図版を含む論文PDFを正確に構造化して読み取ることができます。
 
-![スクリーンショット](フロントエンドのスクリーンショット添付予定)
+<img width="1245" height="988" alt="Image" src="https://github.com/user-attachments/assets/2952b103-863c-4236-8774-952094e431d1" />
 
 ## 開発目的
 
